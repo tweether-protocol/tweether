@@ -12,6 +12,7 @@
     "coverage": "buidler coverage --network coverage --temp build --testfiles 'test/*.js'",
     "lint:js": "prettier ./test/**/*.js --write",
     "lint:sol": "solhint -f table contracts/**/*.sol"
+
   },
   "author": "",
   "license": "ISC",
