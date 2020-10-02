@@ -4,7 +4,7 @@ pragma solidity ^0.6.10;
 interface IOracle {
 
     // Price, Decimals
-    function price() public returns (uint, uint);
-    function paymentToken() public returns (address);
-    function sendTweet(string content) public; 
+    function price() external returns (uint, uint);
+    function paymentTokenAddress() external returns (address);
+    function sendTweet(string memory content) external; 
 }

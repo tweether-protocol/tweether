@@ -17,9 +17,9 @@ contract Tweether is ERC20{
     // proposals and votes
     uint public tweetherDenominator;
 
-    constructor(address linkAddress, address oracleAddress, uint denominator) public ERC20("Tweether", "TWE") {
-        link = IERC20(linkAddress);
+    constructor(address oracleAddress, uint denominator) public ERC20("Tweether", "TWE") {
         oracle = IOracle(oracleAddress);
+        link = IERC20(oracle.paymentTokenAddress());
         tweetherDenominator = denominator;
     }
 }
