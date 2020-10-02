@@ -7,11 +7,19 @@ import "./oracle/IOracle.sol";
 
 contract Tweether is ERC20{
 
+    // LINK token address
     IERC20 public link;
+
+    // Oracle contract to tweet from
     IOracle public oracle;
 
-    constructor(address linkAddress, address oracleAddress) public ERC20("Tweether", "TWE") {
+    // Tweether denominator which determines ratios for
+    // proposals and votes
+    uint public tweetherDenominator;
+
+    constructor(address linkAddress, address oracleAddress, uint denominator) public ERC20("Tweether", "TWE") {
         link = IERC20(linkAddress);
         oracle = IOracle(oracleAddress);
+        tweetherDenominator = denominator;
     }
 }
