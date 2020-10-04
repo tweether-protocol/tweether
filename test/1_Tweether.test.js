@@ -75,9 +75,15 @@ contract('Tweether', (accounts) => {
       let tweetherFirstLinkBalance = await tweether.linkBalance()
 
       deployerFirstLinkBalance.toString().should.equal((deployerInitialLinkBalance - linkSuppliedAmount).toString())
-      deployerFirstTweBalance.toString().should.equal((linkSuppliedAmount + parseInt(deployerInitialTweBalance)).toString())
-      tweetherFirstTotalSupply.toString().should.equal((linkSuppliedAmount + parseInt(tweetherInitialTotalSupply)).toString())
-      tweetherFirstLinkBalance.toString().should.equal((linkSuppliedAmount + parseInt(tweetherInitialLinkBalance)).toString())
+      deployerFirstTweBalance
+        .toString()
+        .should.equal((linkSuppliedAmount + parseInt(deployerInitialTweBalance)).toString())
+      tweetherFirstTotalSupply
+        .toString()
+        .should.equal((linkSuppliedAmount + parseInt(tweetherInitialTotalSupply)).toString())
+      tweetherFirstLinkBalance
+        .toString()
+        .should.equal((linkSuppliedAmount + parseInt(tweetherInitialLinkBalance)).toString())
 
       // Cover mints after the first ever mint
       await link.approve(tweether.address, linkSuppliedAmount.toString(), { from: deployer })
@@ -89,35 +95,47 @@ contract('Tweether', (accounts) => {
       let tweetherSecondLinkBalance = await tweether.linkBalance()
 
       deployerSecondLinkBalance.toString().should.equal((deployerFirstLinkBalance - linkSuppliedAmount).toString())
-      deployerSecondTweBalance.toString().should.equal(((linkSuppliedAmount * 2) + parseInt(deployerInitialTweBalance)).toString())
-      tweetherSecondTotalSupply.toString().should.equal(((linkSuppliedAmount * 2) + parseInt(tweetherInitialTotalSupply)).toString())
-      tweetherSecondLinkBalance.toString().should.equal(((linkSuppliedAmount * 2) + parseInt(tweetherInitialLinkBalance)).toString())
+      deployerSecondTweBalance
+        .toString()
+        .should.equal((linkSuppliedAmount * 2 + parseInt(deployerInitialTweBalance)).toString())
+      tweetherSecondTotalSupply
+        .toString()
+        .should.equal((linkSuppliedAmount * 2 + parseInt(tweetherInitialTotalSupply)).toString())
+      tweetherSecondLinkBalance
+        .toString()
+        .should.equal((linkSuppliedAmount * 2 + parseInt(tweetherInitialLinkBalance)).toString())
     })
 
     it('burns TWE for LINK 1:1 before any proposals or tweets', async () => {
-        let linkSuppliedAmount = 4 * WAD
-        let burnAmount = linkSuppliedAmount / 2;
-        await link.approve(tweether.address, linkSuppliedAmount.toString(), { from: deployer })
-        await tweether.mint(linkSuppliedAmount.toString(), { from: deployer })
+      let linkSuppliedAmount = 4 * WAD
+      let burnAmount = linkSuppliedAmount / 2
+      await link.approve(tweether.address, linkSuppliedAmount.toString(), { from: deployer })
+      await tweether.mint(linkSuppliedAmount.toString(), { from: deployer })
 
-        let deployerInitialLinkBalance = await link.balanceOf(deployer)
-        let deployerInitialTweBalance = await tweether.balanceOf(deployer)
-        let tweetherInitialTotalSupply = await tweether.totalSupply()
-        let tweetherInitialLinkBalance = await tweether.linkBalance()
+      let deployerInitialLinkBalance = await link.balanceOf(deployer)
+      let deployerInitialTweBalance = await tweether.balanceOf(deployer)
+      let tweetherInitialTotalSupply = await tweether.totalSupply()
+      let tweetherInitialLinkBalance = await tweether.linkBalance()
 
-        await tweether.burn(burnAmount.toString(), {from: deployer})
+      await tweether.burn(burnAmount.toString(), { from: deployer })
 
-        let deployerAfterLinkBalance = await link.balanceOf(deployer)
-        let deployerAfterTweBalance = await tweether.balanceOf(deployer)
-        let tweetherAfterTotalSupply = await tweether.totalSupply()
-        let tweetherAfterLinkBalance = await tweether.linkBalance()
+      let deployerAfterLinkBalance = await link.balanceOf(deployer)
+      let deployerAfterTweBalance = await tweether.balanceOf(deployer)
+      let tweetherAfterTotalSupply = await tweether.totalSupply()
+      let tweetherAfterLinkBalance = await tweether.linkBalance()
 
-        deployerAfterLinkBalance.toString().should.equal((parseInt(deployerInitialLinkBalance) + parseInt(burnAmount)).toString())
-        deployerAfterTweBalance.toString().should.equal((parseInt(deployerInitialTweBalance) - parseInt(burnAmount)).toString())
-        tweetherAfterTotalSupply.toString().should.equal((parseInt(tweetherInitialTotalSupply) - parseInt(burnAmount)).toString())
-        tweetherAfterLinkBalance.toString().should.equal((parseInt(tweetherInitialLinkBalance) - parseInt(burnAmount)).toString());
-        
+      deployerAfterLinkBalance
+        .toString()
+        .should.equal((parseInt(deployerInitialLinkBalance) + parseInt(burnAmount)).toString())
+      deployerAfterTweBalance
+        .toString()
+        .should.equal((parseInt(deployerInitialTweBalance) - parseInt(burnAmount)).toString())
+      tweetherAfterTotalSupply
+        .toString()
+        .should.equal((parseInt(tweetherInitialTotalSupply) - parseInt(burnAmount)).toString())
+      tweetherAfterLinkBalance
+        .toString()
+        .should.equal((parseInt(tweetherInitialLinkBalance) - parseInt(burnAmount)).toString())
     })
-
   })
 })
