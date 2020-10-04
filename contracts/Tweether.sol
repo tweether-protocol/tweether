@@ -32,6 +32,26 @@ contract Tweether is ERC20{
     }
 
     /**
+     * @dev Mint TWE by supplying LINK. LINK.approve must first be called
+     * @param linkAmount the amount of LINK to supply
+     * @return amount of TWE minted
+     */
+    function mint(uint linkAmount) external returns (uint) {
+        // First mint enters here and returns
+        if (totalSupply() == 0 || linkBalance() == 0) {
+            require(link.transferFrom(msg.sender, address(this), linkAmount), "LINK not supplied");
+            _mint(msg.sender, linkAmount);
+            return linkAmount;
+        }
+        
+        // For any other mint...
+        uint tweMinted = (linkAmount.wadMul(totalSupply())).wadDiv(linkBalance());
+        require(link.transferFrom(msg.sender, address(this), linkAmount), "LINK not supplied");
+        _mint(msg.sender, tweMinted);
+        return tweMinted;
+    }
+
+    /**
      * @dev Get the cost of a request to the oracle
      * @return (uint price, uint decimals)
      */
