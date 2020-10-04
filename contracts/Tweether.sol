@@ -32,7 +32,7 @@ contract Tweether is ERC20{
     }
 
     /**
-     * @dev Mint TWE by supplying LINK. LINK.approve must first be called
+     * @dev Mint TWE by supplying LINK. LINK.approve must first be called by msg.sender
      * @param linkAmount the amount of LINK to supply
      * @return amount of TWE minted
      */
@@ -49,6 +49,20 @@ contract Tweether is ERC20{
         require(link.transferFrom(msg.sender, address(this), linkAmount), "LINK not supplied");
         _mint(msg.sender, tweMinted);
         return tweMinted;
+    }
+
+    /**
+     * @dev Burn TWE, receiving LINK.
+     * @param tweAmount amount of TWE to burn
+     * @return LINK returned
+     */
+    function burn(uint tweAmount) external returns (uint) {
+        require(linkBalance() >= WadMath.WAD, "Not enough LINK");
+        require(totalSupply() >= WadMath.WAD, "Not enough totalSupply");
+        uint linkReturned = tweAmount.wadMul(tweValueInLink());
+        _burn(msg.sender, tweAmount);
+        require(link.transfer(msg.sender, linkReturned), "LINK transfer fail");
+        return linkReturned;
     }
 
     /**

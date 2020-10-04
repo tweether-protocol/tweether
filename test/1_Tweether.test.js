@@ -58,7 +58,7 @@ contract('Tweether', (accounts) => {
         })
     })
 
-    describe('minting', async () => {
+    describe('minting and burning', async () => {
         it('mints TWE for LINK 1:1 before any proposals or tweets', async () => {
             let linkSuppliedAmount = 4*WAD;
             let deployerInitialLinkBalance = await link.balanceOf(deployer);
