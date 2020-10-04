@@ -9,21 +9,26 @@ import "./WadMath.sol";
 contract Tweether is ERC20{
     using WadMath for uint;
 
-    // LINK token address
+    /**
+     * LINK token address
+     */
     IERC20 public link;
 
-    // Oracle contract to tweet from
+    /**
+     * Oracle contract to tweet from
+     */
     IOracle public oracle;
 
-    // Tweether denominator which determines ratios for
-    // proposals and votes
-    // WAD Format!
+    /**
+     * @dev WAD format Tweether denominator which determines ratios for proposals and votes.
+     */
     uint public tweetherDenominator;
 
     /**
      * Construct using a pre-constructed IOracle
      * @param oracleAddress address referencing pre-deployed IOracle
-     * @param denominator WAD format representing the Tweether Denominator, used in a range of protocol calcs
+     * @param denominator WAD format representing the Tweether Denominator, 
+     * used in a range of protocol calculations
      */
     constructor(address oracleAddress, uint denominator) public ERC20("Tweether", "TWE") {
         oracle = IOracle(oracleAddress);
