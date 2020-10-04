@@ -10,12 +10,12 @@ contract Tweether is ERC20{
     using WadMath for uint;
 
     /**
-     * LINK token address
+     * @dev LINK token address
      */
     IERC20 public link;
 
     /**
-     * Oracle contract to tweet from
+     * @dev Oracle contract to tweet from
      */
     IOracle public oracle;
 
