@@ -44,16 +44,23 @@ contract Tweether is ERC20{
     function mint(uint linkAmount) external returns (uint) {
         // First mint enters here and returns
         if (totalSupply() == 0 || linkBalance() == 0) {
-            require(link.transferFrom(msg.sender, address(this), linkAmount), "LINK not supplied");
-            _mint(msg.sender, linkAmount);
-            return linkAmount;
+            return _mint(linkAmount, linkAmount);
         }
-        
         // For any other mint...
         uint tweMinted = (linkAmount.wadMul(totalSupply())).wadDiv(linkBalance());
+        return _mint(linkAmount, tweMinted);
+    }
+
+    /**
+     * @dev Internal mint function
+     * @param linkAmount the amount of LINK to request from the sender
+     * @param tweToMint the amount of TWE to mint
+     * @return amount of TWE minted
+     */
+    function _mint(uint linkAmount, uint tweToMint) internal returns (uint) {
         require(link.transferFrom(msg.sender, address(this), linkAmount), "LINK not supplied");
-        _mint(msg.sender, tweMinted);
-        return tweMinted;
+        _mint(msg.sender, tweToMint);
+        return tweToMint;
     }
 
     /**
