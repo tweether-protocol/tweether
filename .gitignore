@@ -9,8 +9,8 @@ build/
 cache/
 
 # lock files
-package-json.lock
-yarn.lock
+package-lock.json
+# yarn.lock
 
 # misc
 .DS_Store
