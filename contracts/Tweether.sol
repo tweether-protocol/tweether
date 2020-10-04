@@ -35,7 +35,7 @@ contract Tweether is ERC20{
      * @dev Get the cost of a request to the oracle
      * @return (uint price, uint decimals)
      */
-    function _oracleCost() internal returns (uint, uint) {
+    function oracleCost() public view returns (uint, uint) {
         return oracle.price();
     }
 
@@ -43,7 +43,7 @@ contract Tweether is ERC20{
      * @dev Get the current balance of LINK
      * @return balance
      */
-    function _linkBalance() internal returns (uint) {
+    function linkBalance() public view returns (uint) {
         return link.balanceOf(address(this));
     }
 
@@ -51,7 +51,7 @@ contract Tweether is ERC20{
      * @dev Get the current value of TWE in LINK
      * @return TWE value
      */
-    function _tweValueInLink() internal returns (uint) {
-        return _linkBalance().wadDiv(totalSupply());
+    function tweValueInLink() public view returns (uint) {
+        return linkBalance().wadDiv(totalSupply());
     }
 }
