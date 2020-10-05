@@ -78,6 +78,16 @@ contract Tweether is ERC20{
     }
 
     /**
+     * @dev The TWE cost of submitting a proposal for 1 day timespan
+     * @return TWE cost
+     */
+    function tweSingleProposalCost() public view returns (uint) {
+        // (oracleCost * totalTweSupply) / (denominator * linkBalance)
+        (uint oracleCost, ) = oracleCost();
+        return (oracleCost.wadMul(totalSupply())).wadDiv(tweetherDenominator.wadMul(linkBalance()));
+    }
+
+    /**
      * @dev Get the cost of a request to the oracle
      * @return (uint price, uint decimals)
      */

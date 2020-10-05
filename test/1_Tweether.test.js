@@ -1,3 +1,5 @@
+const { before } = require('mocha')
+
 const Tweether = artifacts.require('Tweether')
 const MockERC20 = artifacts.require('MockERC20')
 const MockOracle = artifacts.require('MockOracle')
@@ -136,6 +138,23 @@ contract('Tweether', (accounts) => {
       tweetherAfterLinkBalance
         .toString()
         .should.equal((parseInt(tweetherInitialLinkBalance) - parseInt(burnAmount)).toString())
+    })
+  })
+
+  describe('proposal cost', async () => {
+    beforeEach(async () => {
+      let linkSuppliedAmount = 4 * WAD
+      await link.approve(tweether.address, linkSuppliedAmount.toString(), { from: deployer })
+      await tweether.mint(linkSuppliedAmount.toString(), { from: deployer })
+    })
+
+    it('costs (1 / denominator) in TWE to propose a single tweet', async () => {
+      let oracleCostResult = await tweether.oracleCost()
+      let { 0: priceReturned, 1: decimalsReturned } = oracleCostResult
+      let expectedPrice = priceReturned / (denominator / WAD)
+
+      let tweCost = await tweether.tweSingleProposalCost({from: deployer})
+      tweCost.toString().should.equal(expectedPrice.toString())
     })
   })
 })
