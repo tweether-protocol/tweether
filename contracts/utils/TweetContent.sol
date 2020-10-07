@@ -3,7 +3,7 @@ pragma solidity ^0.6.10;
 
 library TweetContent {
 
-    function length(string memory s) internal pure returns (bool)
+    function fitsInTweet(string memory s) internal pure returns (bool)
     {
         uint maxlength = 280;
         uint len = 0;

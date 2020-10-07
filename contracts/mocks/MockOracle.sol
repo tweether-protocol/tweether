@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.10;
 
-import "./IOracle.sol";
+import "../oracle/IOracle.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract MockOracle is IOracle {
