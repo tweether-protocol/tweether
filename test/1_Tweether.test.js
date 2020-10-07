@@ -1,5 +1,3 @@
-const { before } = require('mocha')
-
 const Tweether = artifacts.require('Tweether')
 const MockERC20 = artifacts.require('MockERC20')
 const MockOracle = artifacts.require('MockOracle')
