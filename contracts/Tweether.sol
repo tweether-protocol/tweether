@@ -4,8 +4,13 @@ pragma solidity ^0.6.10;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./oracle/IOracle.sol";
+import "./Proposal.sol";
 import "./WadMath.sol";
 
+/**
+ * @dev Tweether Protocol gov contract
+ * @author Alex Roan (@alexroan)
+ */
 contract Tweether is ERC20{
     using WadMath for uint;
 
@@ -18,6 +23,11 @@ contract Tweether is ERC20{
      * @dev Oracle contract to tweet from
      */
     IOracle public oracle;
+
+    /**
+     * @dev Tweet proposals
+     */
+    Proposal public tweets;
 
     /**
      * @dev WAD format Tweether denominator which determines ratios for proposals and votes.
@@ -75,6 +85,20 @@ contract Tweether is ERC20{
         _burn(msg.sender, tweAmount);
         require(link.transfer(msg.sender, linkReturned), "LINK transfer fail");
         return linkReturned;
+    }
+
+    /**
+     * @dev Propose a tweet which can be voted on until proposal expires.
+     * Expiry date is set using the daysValid parameter.
+     * @param daysValid number of days for this proposal to be valid before expiry
+     * @param tweetContent the text content of the tweet
+     * @return Tweet proposal ID
+     */
+    function proposeTweet(uint daysValid, string memory tweetContent) external returns (uint) {
+        uint daysValidPrice = daysValid.mul(tweSingleProposalCost());
+        uint expiryDate = daysValid.mul(24).mul(60).mul(60);
+        require(transferFrom(msg.sender, address(this), daysValidPrice), "TWE not supplied");
+        return tweets.newTweet(msg.sender, expiryDate, tweetContent);
     }
 
     /**

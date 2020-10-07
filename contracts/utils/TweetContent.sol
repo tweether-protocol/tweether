@@ -2,8 +2,10 @@
 pragma solidity ^0.6.10;
 
 library TweetContent {
-    function length(string memory s) internal pure returns (uint)
+
+    function length(string memory s) internal pure returns (bool)
     {
+        uint maxlength = 280;
         uint len = 0;
         uint i = 0;
         bytes memory strBytes = bytes(s);
@@ -22,6 +24,7 @@ library TweetContent {
             }
             len++;
         }
-        return len;
+
+        return (len <= maxlength && len > 0);
     }
 }
