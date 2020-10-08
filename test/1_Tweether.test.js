@@ -19,9 +19,9 @@ contract('Tweether', (accounts) => {
   beforeEach(async () => {
     link = await MockERC20.new({ from: deployer })
     oracle = await MockOracle.new(link.address, { from: deployer })
-    tweetProposals = await Proposal.new({from:deployer})
+    tweetProposals = await Proposal.new({ from: deployer })
     tweether = await Tweether.new(oracle.address, tweetProposals.address, denominator.toString(), { from: deployer })
-    await tweetProposals.transferOwnership(tweether.address, {from:deployer})
+    await tweetProposals.transferOwnership(tweether.address, { from: deployer })
   })
 
   describe('deployment', async () => {
@@ -155,13 +155,12 @@ contract('Tweether', (accounts) => {
       let { 0: priceReturned, 1: decimalsReturned } = oracleCostResult
       let expectedPrice = priceReturned / (denominator / WAD)
 
-      let tweCost = await tweether.tweSingleProposalCost({from: deployer})
+      let tweCost = await tweether.tweSingleProposalCost({ from: deployer })
       tweCost.toString().should.equal(expectedPrice.toString())
     })
   })
 
   describe('proposing a tweet', async () => {
-
     beforeEach(async () => {
       let linkSuppliedAmount = 4 * WAD
       await link.approve(tweether.address, linkSuppliedAmount.toString(), { from: deployer })
@@ -173,15 +172,15 @@ contract('Tweether', (accounts) => {
       let { 0: priceReturned, 1: decimalsReturned } = oracleCostResult
       let expectedPrice = priceReturned / (denominator / WAD)
 
-      let oneDayTweet = "This is a 1 day tweet."
+      let oneDayTweet = 'This is a 1 day tweet.'
       let proposalReturn = await tweether.proposeTweet(1, oneDayTweet)
       let eventLog = proposalReturn.logs[0]
       eventLog.args.value.toString().should.equal(expectedPrice.toString())
     })
 
     it('submits a proposal for 1 day and sets the correct expiry date', async () => {
-      let oneDayTweet = "This is a 1 day tweet."
-      let tomorrow = (Math.floor(Date.now() / 1000)) + (24 * 60 * 60)
+      let oneDayTweet = 'This is a 1 day tweet.'
+      let tomorrow = Math.floor(Date.now() / 1000) + 24 * 60 * 60
       let lowerDateLimit = tomorrow - 120
       let upperDateLimit = tomorrow + 120
       let proposalReturn = await tweether.proposeTweet(1, oneDayTweet)
@@ -195,15 +194,15 @@ contract('Tweether', (accounts) => {
       let { 0: priceReturned, 1: decimalsReturned } = oracleCostResult
       let expectedPrice = (priceReturned * 5) / (denominator / WAD)
 
-      let oneDayTweet = "This is a 1 day tweet."
+      let oneDayTweet = 'This is a 1 day tweet.'
       let proposalReturn = await tweether.proposeTweet(5, oneDayTweet)
       let eventLog = proposalReturn.logs[0]
       eventLog.args.value.toString().should.equal(expectedPrice.toString())
     })
 
     it('submits a proposal for 5 day and sets the correct expiry date', async () => {
-      let oneDayTweet = "This is a 5 day tweet."
-      let tomorrow = (Math.floor(Date.now() / 1000)) + (5 * 24 * 60 * 60)
+      let oneDayTweet = 'This is a 5 day tweet.'
+      let tomorrow = Math.floor(Date.now() / 1000) + 5 * 24 * 60 * 60
       let lowerDateLimit = tomorrow - 120
       let upperDateLimit = tomorrow + 120
       let proposalReturn = await tweether.proposeTweet(5, oneDayTweet)
@@ -213,7 +212,7 @@ contract('Tweether', (accounts) => {
     })
 
     it('creates an NFTwe', async () => {
-      let oneDayTweet = "This is a 5 day tweet."
+      let oneDayTweet = 'This is a 5 day tweet.'
       let proposalReturn = await tweether.proposeTweet(1, oneDayTweet)
       let proposalId = proposalReturn.logs[1].args.id
       let prop = await tweetProposals.get(proposalId.toString())
