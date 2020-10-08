@@ -3,15 +3,16 @@ pragma solidity ^0.6.10;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
 import "./oracle/IOracle.sol";
-import "./Proposal.sol";
+import "./IProposal.sol";
 import "./WadMath.sol";
 
 /**
  * @dev Tweether Protocol gov contract
  * @author Alex Roan (@alexroan)
  */
-contract Tweether is ERC20{
+contract Tweether is ERC20, ERC721Holder{
     using WadMath for uint;
 
     /**
@@ -27,12 +28,14 @@ contract Tweether is ERC20{
     /**
      * @dev Tweet proposals
      */
-    Proposal public tweets;
+    IProposal public tweetProposals;
 
     /**
      * @dev WAD format Tweether denominator which determines ratios for proposals and votes.
      */
     uint public tweetherDenominator;
+
+    event TweetProposed(uint indexed id, address indexed proposer, uint expiryDate);
 
     /**
      * Construct using a pre-constructed IOracle
@@ -40,9 +43,10 @@ contract Tweether is ERC20{
      * @param denominator WAD format representing the Tweether Denominator, 
      * used in a range of protocol calculations
      */
-    constructor(address oracleAddress, uint denominator) public ERC20("Tweether", "TWE") {
+    constructor(address oracleAddress, address tweetProposalsAddress, uint denominator) public ERC20("Tweether", "TWE") {
         oracle = IOracle(oracleAddress);
         link = IERC20(oracle.paymentTokenAddress());
+        tweetProposals = IProposal(tweetProposalsAddress);
         tweetherDenominator = denominator;
     }
 
@@ -96,9 +100,11 @@ contract Tweether is ERC20{
      */
     function proposeTweet(uint daysValid, string memory tweetContent) external returns (uint) {
         uint daysValidPrice = daysValid.mul(tweSingleProposalCost());
-        uint expiryDate = daysValid.mul(24).mul(60).mul(60);
-        require(transferFrom(msg.sender, address(this), daysValidPrice), "TWE not supplied");
-        return tweets.newTweet(msg.sender, expiryDate, tweetContent);
+        uint expiryDate = block.timestamp + daysValid.mul(24).mul(60).mul(60);
+        _burn(msg.sender, daysValidPrice);
+        uint proposalId = tweetProposals.newTweet(msg.sender, expiryDate, tweetContent);
+        emit TweetProposed(proposalId, msg.sender, expiryDate);
+        return proposalId;
     }
 
     /**

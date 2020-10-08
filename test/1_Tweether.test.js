@@ -1,23 +1,27 @@
 const Tweether = artifacts.require('Tweether')
 const MockERC20 = artifacts.require('MockERC20')
 const MockOracle = artifacts.require('MockOracle')
+const Proposal = artifacts.require('Proposal')
 
 require('chai').use(require('chai-as-promised')).should()
 
 const EVM_REVERT = 'VM Exception while processing transaction: revert'
+const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 contract('Tweether', (accounts) => {
   const [deployer] = accounts
 
   WAD = 10 ** 18
 
-  let link, oracle, tweether
+  let link, oracle, tweetProposals, tweether
   const denominator = 5 * WAD
 
   beforeEach(async () => {
     link = await MockERC20.new({ from: deployer })
     oracle = await MockOracle.new(link.address, { from: deployer })
-    tweether = await Tweether.new(oracle.address, denominator.toString(), { from: deployer })
+    tweetProposals = await Proposal.new({from:deployer})
+    tweether = await Tweether.new(oracle.address, tweetProposals.address, denominator.toString(), { from: deployer })
+    await tweetProposals.transferOwnership(tweether.address, {from:deployer})
   })
 
   describe('deployment', async () => {
@@ -153,6 +157,69 @@ contract('Tweether', (accounts) => {
 
       let tweCost = await tweether.tweSingleProposalCost({from: deployer})
       tweCost.toString().should.equal(expectedPrice.toString())
+    })
+  })
+
+  describe('proposing a tweet', async () => {
+
+    beforeEach(async () => {
+      let linkSuppliedAmount = 4 * WAD
+      await link.approve(tweether.address, linkSuppliedAmount.toString(), { from: deployer })
+      await tweether.mint(linkSuppliedAmount.toString(), { from: deployer })
+    })
+
+    it('submits a proposal for 1 day burns 1/denominator TWE', async () => {
+      let oracleCostResult = await tweether.oracleCost()
+      let { 0: priceReturned, 1: decimalsReturned } = oracleCostResult
+      let expectedPrice = priceReturned / (denominator / WAD)
+
+      let oneDayTweet = "This is a 1 day tweet."
+      let proposalReturn = await tweether.proposeTweet(1, oneDayTweet)
+      let eventLog = proposalReturn.logs[0]
+      eventLog.args.value.toString().should.equal(expectedPrice.toString())
+    })
+
+    it('submits a proposal for 1 day and sets the correct expiry date', async () => {
+      let oneDayTweet = "This is a 1 day tweet."
+      let tomorrow = (Math.floor(Date.now() / 1000)) + (24 * 60 * 60)
+      let lowerDateLimit = tomorrow - 120
+      let upperDateLimit = tomorrow + 120
+      let proposalReturn = await tweether.proposeTweet(1, oneDayTweet)
+      let eventLog = proposalReturn.logs[1]
+      parseInt(eventLog.args.expiryDate).should.be.gt(lowerDateLimit)
+      parseInt(eventLog.args.expiryDate).should.be.lt(upperDateLimit)
+    })
+
+    it('submits a proposal for 5 day burns 5/denominator TWE', async () => {
+      let oracleCostResult = await tweether.oracleCost()
+      let { 0: priceReturned, 1: decimalsReturned } = oracleCostResult
+      let expectedPrice = (priceReturned * 5) / (denominator / WAD)
+
+      let oneDayTweet = "This is a 1 day tweet."
+      let proposalReturn = await tweether.proposeTweet(5, oneDayTweet)
+      let eventLog = proposalReturn.logs[0]
+      eventLog.args.value.toString().should.equal(expectedPrice.toString())
+    })
+
+    it('submits a proposal for 5 day and sets the correct expiry date', async () => {
+      let oneDayTweet = "This is a 5 day tweet."
+      let tomorrow = (Math.floor(Date.now() / 1000)) + (5 * 24 * 60 * 60)
+      let lowerDateLimit = tomorrow - 120
+      let upperDateLimit = tomorrow + 120
+      let proposalReturn = await tweether.proposeTweet(5, oneDayTweet)
+      let eventLog = proposalReturn.logs[1]
+      parseInt(eventLog.args.expiryDate).should.be.gt(lowerDateLimit)
+      parseInt(eventLog.args.expiryDate).should.be.lt(upperDateLimit)
+    })
+
+    it('creates an NFTwe', async () => {
+      let oneDayTweet = "This is a 5 day tweet."
+      let proposalReturn = await tweether.proposeTweet(1, oneDayTweet)
+      let proposalId = proposalReturn.logs[1].args.id
+      let prop = await tweetProposals.get(proposalId.toString())
+      prop[0].toString().should.equal(deployer.toString())
+      prop[2].toString().should.equal(oneDayTweet)
+      prop[3].should.equal(false)
     })
   })
 })

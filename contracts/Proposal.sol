@@ -2,19 +2,18 @@
 pragma solidity ^0.6.10;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./utils/TweetContent.sol";
+import "./IProposal.sol";
 
 /**
  * @dev Tweether NFTwe
  * @author Alex Roan (@alexroan)
  */
-contract Proposal is ERC721, Ownable{
+contract Proposal is IProposal, ERC721, Ownable{
     using TweetContent for string;
-    using Counters for Counters.Counter;
 
-    Counters.Counter private _tokenIds;
+    uint private _tokenIds;
 
     Tweet[] public tweets;
 
@@ -28,22 +27,28 @@ contract Proposal is ERC721, Ownable{
     constructor() public ERC721("Tweether Tweet", "NFTWE") {
     }
 
-    function newTweet(address proposer, uint expiry, string memory content) external onlyOwner returns (uint) {
+    function newTweet(address proposer, uint expiry, string memory content) external override onlyOwner returns (uint) {
         require(content.fitsInTweet(), "Invalid tweet size");
-        _tokenIds.increment();
-        uint256 newId = _tokenIds.current();
-        tweets.push(
-            Tweet(proposer, expiry, content, false)
-        );
+        uint256 newId = tweets.length;
+        tweets.push(Tweet(proposer, expiry, content, false));
         _safeMint(owner(), newId);
         return newId;
     }
 
-    function resetExpiry(uint tokenId, uint expiry) external onlyOwner {
+    function get(uint tokenId) external view override returns (address, uint, string memory, bool) {
+        return (
+            tweets[tokenId].proposer,
+            tweets[tokenId].expiry,
+            tweets[tokenId].content,
+            tweets[tokenId].accepted
+        );
+    }
+
+    function resetExpiry(uint tokenId, uint expiry) external override onlyOwner {
 
     }
 
-    function acceptTweet(uint tokenId) external onlyOwner {
+    function acceptTweet(uint tokenId) external override onlyOwner {
 
     }
 
