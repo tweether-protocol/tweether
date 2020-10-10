@@ -222,4 +222,8 @@ contract('Tweether', (accounts) => {
       prop[4].should.equal(false)
     })
   })
+
+  describe("voting on proposals", async () => {
+    //TODO
+  })
 })
