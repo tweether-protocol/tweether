@@ -41,6 +41,9 @@ contract Tweether is ERC20, ERC721Holder{
      */
     mapping(address => uint) public lockedVotes;
 
+    // TODO
+    mapping(uint => address[]) public voteLocations;
+
     event TweetProposed(uint proposalId, address proposer, uint expiryDate);
     event TweetAccepted(uint proposalId, address finalVoter);
 
@@ -111,6 +114,7 @@ contract Tweether is ERC20, ERC721Holder{
             string memory tweetContent = tweetProposals.accept(msg.sender, proposalId);
             oracle.sendTweet(tweetContent);
             emit TweetAccepted(proposalId, msg.sender);
+            // TODO: Unlock votes!
         }
     }
 
