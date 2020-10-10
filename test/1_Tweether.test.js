@@ -218,12 +218,12 @@ contract('Tweether', (accounts) => {
       let prop = await tweetProposals.get(proposalId.toString())
       prop[0].toString().should.equal(deployer.toString())
       prop[2].toString().should.equal(oneDayTweet)
-      prop[3].toString().should.equal("0")
+      prop[3].toString().should.equal('0')
       prop[4].should.equal(false)
     })
   })
 
-  describe("voting on proposals", async () => {
+  describe('voting on proposals', async () => {
     //TODO
   })
 })

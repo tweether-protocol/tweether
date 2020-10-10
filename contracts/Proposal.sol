@@ -26,6 +26,12 @@ contract Proposal is IProposal, ERC721, Ownable{
         bool accepted;
     }
 
+    modifier isValid(uint proposalId) {
+        require(tweets[proposalId].expiry > block.timestamp, "Proposal expired");
+        require(tweets[proposalId].accepted == false, "Proposal accepted already");
+        _;
+    }
+
     constructor() public ERC721("Tweether Tweet", "NFTWE") {
     }
 
@@ -37,9 +43,7 @@ contract Proposal is IProposal, ERC721, Ownable{
         return newId;
     }
 
-    function vote(uint proposalId, uint votes) external override onlyOwner returns (uint) {
-        require(tweets[proposalId].expiry > block.timestamp, "Proposal expired");
-        require(tweets[proposalId].accepted == false, "Proposal accepted already");
+    function vote(uint proposalId, uint votes) external override onlyOwner isValid(proposalId) returns (uint) {
         tweets[proposalId].votes = tweets[proposalId].votes.add(votes);
         return tweets[proposalId].votes;
     }
@@ -58,9 +62,7 @@ contract Proposal is IProposal, ERC721, Ownable{
 
     }
 
-    function accept(address recipient, uint proposalId) external override onlyOwner returns (string memory) {
-        require(tweets[proposalId].expiry > block.timestamp, "Proposal expired");
-        require(tweets[proposalId].accepted == false, "Proposal accepted already");
+    function accept(address recipient, uint proposalId) external override onlyOwner isValid(proposalId) returns (string memory) {
         tweets[proposalId].accepted = true;
         safeTransferFrom(owner(), recipient, proposalId);
         return tweets[proposalId].content;
