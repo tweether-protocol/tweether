@@ -35,7 +35,11 @@ contract Tweether is ERC20, ERC721Holder{
      */
     uint public tweetherDenominator;
 
-    event TweetProposed(uint indexed id, address indexed proposer, uint expiryDate);
+    /**
+     * @dev Votes locked by an address
+     * voter => lockedVotes
+     */
+    mapping(address => uint) public lockedVotes;
 
     /**
      * Construct using a pre-constructed IOracle
@@ -89,6 +93,27 @@ contract Tweether is ERC20, ERC721Holder{
         _burn(msg.sender, tweAmount);
         require(link.transfer(msg.sender, linkReturned), "LINK transfer fail");
         return linkReturned;
+    }
+
+    function vote(uint proposalId, uint votes) external {
+        // Does the sender have enough TWE for votes
+        // Does the sender have enough TWE not locked in votes already?
+        require(balanceOf(msg.sender).sub(lockedVotes[msg.sender]) >= votes, "Not enough unlocked TWE");
+        // Increase amount of votes locked
+        lockedVotes[msg.sender] = lockedVotes[msg.sender].add(votes);
+        // Vote on tweet
+        uint totalVotes = tweetProposals.vote(proposalId, votes);
+        // If votes tip over edge, transfer NFTwe
+        if (totalVotes >= votesRequired()) {
+            string tweetContent = tweetProposals.accept(msg.sender, proposalId);
+            oracle.sendTweet(tweetContent);
+        }
+    }
+
+    function votesRequired() public view returns (uint) {
+        // (oracleCost * totalTweSupply) / linkBalance
+        (uint oracleCost, ) = oracleCost();
+        return (oracleCost.wadMul(totalSupply())).wadDiv(linkBalance());
     }
 
     /**

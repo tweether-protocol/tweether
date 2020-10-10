@@ -3,6 +3,7 @@ pragma solidity ^0.6.10;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./utils/TweetContent.sol";
 import "./IProposal.sol";
 
@@ -15,12 +16,13 @@ contract Proposal is IProposal, ERC721, Ownable{
 
     uint private _tokenIds;
 
-    Tweet[] public tweets;
+    Tweet[] private tweets;
 
     struct Tweet {
         address proposer;
         uint expiry;
         string content;
+        uint votes;
         bool accepted;
     }
 
@@ -35,21 +37,33 @@ contract Proposal is IProposal, ERC721, Ownable{
         return newId;
     }
 
-    function get(uint tokenId) external view override returns (address, uint, string memory, bool) {
+    function vote(uint proposalId, uint votes) external override onlyOwner returns (uint) {
+        require(tweets[proposalId].expiry > block.timestamp, "Proposal expired");
+        require(tweets[proposalId].accepted == false, "Proposal accepted already");
+        tweets[proposalId].votes = tweets[proposalId].votes.add(votes);
+        return tweets[proposalId].votes;
+    }
+
+    function get(uint proposalId) external view override returns (address, uint, string memory, uint, bool) {
         return (
-            tweets[tokenId].proposer,
-            tweets[tokenId].expiry,
-            tweets[tokenId].content,
-            tweets[tokenId].accepted
+            tweets[proposalId].proposer,
+            tweets[proposalId].expiry,
+            tweets[proposalId].content,
+            tweets[proposalId].votes,
+            tweets[proposalId].accepted
         );
     }
 
-    function resetExpiry(uint tokenId, uint expiry) external override onlyOwner {
+    function resetExpiry(uint proposalId, uint expiry) external override onlyOwner {
 
     }
 
-    function acceptTweet(uint tokenId) external override onlyOwner {
-
+    function accept(address newOwner, uint proposalId) external override onlyOwner returns (string memory) {
+        require(tweets[proposalId].expiry > block.timestamp, "Proposal expired");
+        require(tweets[proposalId].accepted == false, "Proposal accepted already");
+        tweets[proposalId].accepted = true;
+        safeTransferFrom(owner(), newOwner, proposalId);
+        return tweets[proposalId].content;
     }
 
 }
