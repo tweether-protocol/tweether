@@ -214,11 +214,12 @@ contract('Tweether', (accounts) => {
     it('creates an NFTwe', async () => {
       let oneDayTweet = 'This is a 5 day tweet.'
       let proposalReturn = await tweether.proposeTweet(1, oneDayTweet)
-      let proposalId = proposalReturn.logs[1].args.id
+      let proposalId = proposalReturn.logs[1].args.proposalId
       let prop = await tweetProposals.get(proposalId.toString())
       prop[0].toString().should.equal(deployer.toString())
       prop[2].toString().should.equal(oneDayTweet)
-      prop[3].should.equal(false)
+      prop[3].toString().should.equal("0")
+      prop[4].should.equal(false)
     })
   })
 })

@@ -32,7 +32,7 @@ contract Proposal is IProposal, ERC721, Ownable{
     function newTweet(address proposer, uint expiry, string memory content) external override onlyOwner returns (uint) {
         require(content.fitsInTweet(), "Invalid tweet size");
         uint256 newId = tweets.length;
-        tweets.push(Tweet(proposer, expiry, content, false));
+        tweets.push(Tweet(proposer, expiry, content, 0, false));
         _safeMint(owner(), newId);
         return newId;
     }
@@ -58,11 +58,11 @@ contract Proposal is IProposal, ERC721, Ownable{
 
     }
 
-    function accept(address newOwner, uint proposalId) external override onlyOwner returns (string memory) {
+    function accept(address recipient, uint proposalId) external override onlyOwner returns (string memory) {
         require(tweets[proposalId].expiry > block.timestamp, "Proposal expired");
         require(tweets[proposalId].accepted == false, "Proposal accepted already");
         tweets[proposalId].accepted = true;
-        safeTransferFrom(owner(), newOwner, proposalId);
+        safeTransferFrom(owner(), recipient, proposalId);
         return tweets[proposalId].content;
     }
 

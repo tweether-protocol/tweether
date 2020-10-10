@@ -41,6 +41,9 @@ contract Tweether is ERC20, ERC721Holder{
      */
     mapping(address => uint) public lockedVotes;
 
+    event TweetProposed(uint proposalId, address proposer, uint expiryDate);
+    event TweetAccepted(uint proposalId, address finalVoter);
+
     /**
      * Construct using a pre-constructed IOracle
      * @param oracleAddress address referencing pre-deployed IOracle
@@ -105,8 +108,9 @@ contract Tweether is ERC20, ERC721Holder{
         uint totalVotes = tweetProposals.vote(proposalId, votes);
         // If votes tip over edge, transfer NFTwe
         if (totalVotes >= votesRequired()) {
-            string tweetContent = tweetProposals.accept(msg.sender, proposalId);
+            string memory tweetContent = tweetProposals.accept(msg.sender, proposalId);
             oracle.sendTweet(tweetContent);
+            emit TweetAccepted(proposalId, msg.sender);
         }
     }
 
