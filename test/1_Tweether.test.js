@@ -1,7 +1,7 @@
 const Tweether = artifacts.require('Tweether')
 const MockERC20 = artifacts.require('MockERC20')
 const MockOracle = artifacts.require('MockOracle')
-const Proposal = artifacts.require('Proposal')
+const NFTwe = artifacts.require('NFTwe')
 
 require('chai').use(require('chai-as-promised')).should()
 
@@ -13,15 +13,15 @@ contract('Tweether', (accounts) => {
 
   WAD = 10 ** 18
 
-  let link, oracle, tweetProposals, tweether
+  let link, oracle, nftwe, tweether
   const denominator = 5 * WAD
 
   beforeEach(async () => {
     link = await MockERC20.new({ from: deployer })
     oracle = await MockOracle.new(link.address, { from: deployer })
-    tweetProposals = await Proposal.new({ from: deployer })
-    tweether = await Tweether.new(oracle.address, tweetProposals.address, denominator.toString(), { from: deployer })
-    await tweetProposals.transferOwnership(tweether.address, { from: deployer })
+    nftwe = await NFTwe.new({ from: deployer })
+    tweether = await Tweether.new(oracle.address, nftwe.address, denominator.toString(), { from: deployer })
+    await nftwe.transferOwnership(tweether.address, { from: deployer })
   })
 
   describe('deployment', async () => {
@@ -211,11 +211,11 @@ contract('Tweether', (accounts) => {
       parseInt(eventLog.args.expiryDate).should.be.lt(upperDateLimit)
     })
 
-    it('creates an NFTwe', async () => {
+    it('creates a proposal', async () => {
       let oneDayTweet = 'This is a 5 day tweet.'
       let proposalReturn = await tweether.proposeTweet(1, oneDayTweet)
       let proposalId = proposalReturn.logs[1].args.proposalId
-      let prop = await tweetProposals.get(proposalId.toString())
+      let prop = await tweether.getTweetProposal(proposalId.toString())
       prop[0].toString().should.equal(deployer.toString())
       prop[2].toString().should.equal(oneDayTweet)
       prop[3].toString().should.equal('0')

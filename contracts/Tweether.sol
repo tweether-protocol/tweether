@@ -4,9 +4,11 @@ pragma solidity ^0.6.10;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
+import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 import "./oracle/IOracle.sol";
-import "./IProposal.sol";
+import "./NFTwe.sol";
 import "./WadMath.sol";
+import "./utils/TweetContent.sol";
 
 /**
  * @dev Tweether Protocol gov contract
@@ -14,6 +16,8 @@ import "./WadMath.sol";
  */
 contract Tweether is ERC20, ERC721Holder{
     using WadMath for uint;
+    using TweetContent for string;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     /**
      * @dev LINK token address
@@ -26,23 +30,31 @@ contract Tweether is ERC20, ERC721Holder{
     IOracle public oracle;
 
     /**
-     * @dev Tweet proposals
+     * @dev NFTwe
      */
-    IProposal public tweetProposals;
+    NFTwe public nftwe;
 
     /**
      * @dev WAD format Tweether denominator which determines ratios for proposals and votes.
      */
     uint public tweetherDenominator;
 
-    /**
-     * @dev Votes locked by an address
-     * voter => lockedVotes
-     */
-    mapping(address => uint) public lockedVotes;
+    struct Tweet {
+        address proposer;
+        uint expiry;
+        string content;
+        uint votes;
+        bool accepted;
+        EnumerableSet.AddressSet voters;
+        mapping(address => uint) voteAmounts;
+    }
 
-    // TODO
-    mapping(uint => address[]) public voteLocations;
+    Tweet[] private proposals;
+
+    // Total votes locked by each address
+    mapping(address => uint) private lockedVotes;
+    // Vote locations for each voter
+    mapping(address => mapping(uint => bool)) private voteLocations;
 
     event TweetProposed(uint proposalId, address proposer, uint expiryDate);
     event TweetAccepted(uint proposalId, address finalVoter);
@@ -53,10 +65,10 @@ contract Tweether is ERC20, ERC721Holder{
      * @param denominator WAD format representing the Tweether Denominator, 
      * used in a range of protocol calculations
      */
-    constructor(address oracleAddress, address tweetProposalsAddress, uint denominator) public ERC20("Tweether", "TWE") {
+    constructor(address oracleAddress, address nftweAddress, uint denominator) public ERC20("Tweether", "TWE") {
         oracle = IOracle(oracleAddress);
         link = IERC20(oracle.paymentTokenAddress());
-        tweetProposals = IProposal(tweetProposalsAddress);
+        nftwe = NFTwe(nftweAddress);
         tweetherDenominator = denominator;
     }
 
@@ -101,18 +113,38 @@ contract Tweether is ERC20, ERC721Holder{
         return linkReturned;
     }
 
-    function vote(uint proposalId, uint votes) external {
+    /**
+     * @dev Vote on a proposal
+     * @param proposalId ID of proposal
+     * @param numberOfVotes votes to cast on proposal
+     */
+    function vote(uint proposalId, uint numberOfVotes) external {
         // Does the sender have enough TWE for votes
         // Does the sender have enough TWE not locked in votes already?
-        require(balanceOf(msg.sender).sub(lockedVotes[msg.sender]) >= votes, "Not enough unlocked TWE");
+        require(balanceOf(msg.sender).sub(lockedVotes[msg.sender]) >= numberOfVotes, "Not enough unlocked TWE");
+        // Does the tweet exist?
+        require(proposalId < proposals.length, "Proposal doesn't exist");
         // Increase amount of votes locked
-        lockedVotes[msg.sender] = lockedVotes[msg.sender].add(votes);
+        lockedVotes[msg.sender] = lockedVotes[msg.sender].add(numberOfVotes);
+        // Add vote location
+        voteLocations[msg.sender][proposalId] = true;
+        // Add to list of voters
+        proposals[proposalId].voters.add(msg.sender);
+        // Add to voteAmounts
+        proposals[proposalId].voteAmounts[msg.sender] = proposals[proposalId].voteAmounts[msg.sender].add(numberOfVotes);
         // Vote on tweet
-        uint totalVotes = tweetProposals.vote(proposalId, votes);
+        uint totalVotes = proposals[proposalId].votes.add(numberOfVotes);
+        proposals[proposalId].votes = totalVotes;
+
         // If votes tip over edge, transfer NFTwe
         if (totalVotes >= votesRequired()) {
-            string memory tweetContent = tweetProposals.accept(msg.sender, proposalId);
-            oracle.sendTweet(tweetContent);
+            oracle.sendTweet(proposals[proposalId].content);
+            nftwe.newTweet(
+                proposals[proposalId].proposer,
+                proposals[proposalId].content,
+                block.timestamp,
+                msg.sender
+            );
             emit TweetAccepted(proposalId, msg.sender);
             // TODO: Unlock votes!
         }
@@ -132,12 +164,35 @@ contract Tweether is ERC20, ERC721Holder{
      * @return Tweet proposal ID
      */
     function proposeTweet(uint daysValid, string memory tweetContent) external returns (uint) {
+        require(tweetContent.fitsInTweet(), "Invalid tweet size");
         uint daysValidPrice = daysValid.mul(tweSingleProposalCost());
         uint expiryDate = block.timestamp + daysValid.mul(24).mul(60).mul(60);
         _burn(msg.sender, daysValidPrice);
-        uint proposalId = tweetProposals.newTweet(msg.sender, expiryDate, tweetContent);
-        emit TweetProposed(proposalId, msg.sender, expiryDate);
-        return proposalId;
+        uint256 newId = proposals.length;
+        EnumerableSet.AddressSet memory newVoters;
+        proposals.push(
+            Tweet(
+                msg.sender,
+                expiryDate,
+                tweetContent,
+                0,
+                false,
+                newVoters
+            )
+        );
+        emit TweetProposed(newId, msg.sender, expiryDate);
+        return newId;
+    }
+
+    function getTweetProposal(uint id) external view returns (address, uint, string memory, uint, bool) {
+        Tweet memory prop = proposals[id];
+        return (
+            prop.proposer,
+            prop.expiry,
+            prop.content,
+            prop.votes,
+            prop.accepted
+        );
     }
 
     /**
