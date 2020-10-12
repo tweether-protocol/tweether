@@ -201,18 +201,18 @@ contract('Tweether', (accounts) => {
     })
 
     it('submits a proposal for 5 day and sets the correct expiry date', async () => {
-      let oneDayTweet = 'This is a 5 day tweet.'
+      let fiveDayTweet = 'This is a 5 day tweet.'
       let tomorrow = Math.floor(Date.now() / 1000) + 5 * 24 * 60 * 60
       let lowerDateLimit = tomorrow - 120
       let upperDateLimit = tomorrow + 120
-      let proposalReturn = await tweether.proposeTweet(5, oneDayTweet)
+      let proposalReturn = await tweether.proposeTweet(5, fiveDayTweet)
       let eventLog = proposalReturn.logs[1]
       parseInt(eventLog.args.expiryDate).should.be.gt(lowerDateLimit)
       parseInt(eventLog.args.expiryDate).should.be.lt(upperDateLimit)
     })
 
     it('creates a proposal', async () => {
-      let oneDayTweet = 'This is a 5 day tweet.'
+      let oneDayTweet = 'This is a 1 day tweet.'
       let proposalReturn = await tweether.proposeTweet(1, oneDayTweet)
       let proposalId = proposalReturn.logs[1].args.proposalId
       let prop = await tweether.getTweetProposal(proposalId.toString())
@@ -224,6 +224,19 @@ contract('Tweether', (accounts) => {
   })
 
   describe('voting on proposals', async () => {
-    //TODO
+    let proposalReturn, proposalId
+    beforeEach(async () => {
+      let oneDayTweet = 'This is a 1 day tweet.'
+      let linkSuppliedAmount = 10 * WAD
+      await link.approve(tweether.address, linkSuppliedAmount.toString(), { from: deployer })
+      await tweether.mint(linkSuppliedAmount.toString(), { from: deployer })
+      proposalReturn = await tweether.proposeTweet(1, oneDayTweet)
+      proposalId = proposalReturn.logs[1].args.proposalId
+    })
+
+    it('votes small amount', async () => {
+      let response = await tweether.vote(proposalId.toString(), WAD.toString())
+      console.log(response)
+    })
   })
 })
