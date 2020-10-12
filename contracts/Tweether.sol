@@ -124,7 +124,9 @@ contract Tweether is ERC20, ERC721Holder{
         require(balanceOf(msg.sender).sub(lockedVotes[msg.sender]) >= numberOfVotes, "Not enough unlocked TWE");
         // Does the tweet exist?
         require(proposalId < proposals.length, "Proposal doesn't exist");
-        // Increase amount of votes locked
+        // Is the proposal valid?
+        require(proposals[proposalId].expiry > block.timestamp, "Proposal expired");
+        // Increase amount of votes locked for address
         lockedVotes[msg.sender] = lockedVotes[msg.sender].add(numberOfVotes);
         // Add vote location
         voteLocations[msg.sender][proposalId] = true;
@@ -150,6 +152,10 @@ contract Tweether is ERC20, ERC721Holder{
         }
     }
 
+    /**
+     * @dev Votes required to tweet a proposal
+     * @return Number of TWE votes required
+     */
     function votesRequired() public view returns (uint) {
         // (oracleCost * totalTweSupply) / linkBalance
         (uint oracleCost, ) = oracleCost();
@@ -184,6 +190,15 @@ contract Tweether is ERC20, ERC721Holder{
         return newId;
     }
 
+    /**
+     * @dev get a proposal
+     * @param id proposal ID
+     * @return proposer address
+     * @return expiry date
+     * @return content string
+     * @return votes for
+     * @return boolean has been accepted
+     */
     function getTweetProposal(uint id) external view returns (address, uint, string memory, uint, bool) {
         Tweet memory prop = proposals[id];
         return (
