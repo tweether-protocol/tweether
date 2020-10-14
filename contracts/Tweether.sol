@@ -127,6 +127,8 @@ contract Tweether is ERC20, ERC721Holder{
         require(proposalId < proposals.length, "Proposal doesn't exist");
         // Is the proposal valid?
         require(proposals[proposalId].expiry > block.timestamp, "Proposal expired");
+        // Has the proposal been accepted already?
+        require(proposals[proposalId].accepted != true, "Proposal accepted already");
         // Increase amount of votes locked for address
         lockedVotes[msg.sender] = lockedVotes[msg.sender].add(numberOfVotes);
         // Add vote location
