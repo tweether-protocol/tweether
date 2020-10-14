@@ -9,7 +9,7 @@ const EVM_REVERT = 'VM Exception while processing transaction: revert'
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 function wadDiv(x, y) {
-  return ( ( x * WAD ) + ( y /2 ) ) / y;
+  return (x * WAD + y / 2) / y
 }
 
 contract('Tweether', (accounts) => {
@@ -239,7 +239,7 @@ contract('Tweether', (accounts) => {
     })
 
     it('should require the correct amount of votes to pass', async () => {
-      let tSupply = (await tweether.totalSupply())
+      let tSupply = await tweether.totalSupply()
       let expected = wadDiv(tSupply, denominator)
       let votesRequired = await tweether.votesRequired()
       votesRequired.toString().should.equal(expected.toString())
@@ -266,11 +266,11 @@ contract('Tweether', (accounts) => {
 
       let response = await tweether.vote(proposalId.toString(), votes.toString())
       let eventLog = response.logs[0]
-      eventLog.event.toString().should.equal("TweetAccepted")
+      eventLog.event.toString().should.equal('TweetAccepted')
     })
 
     it('2nd voter votes enough to accept', async () => {
-      await link.transfer(user1, linkSuppliedAmount.toString(), {from: deployer})
+      await link.transfer(user1, linkSuppliedAmount.toString(), { from: deployer })
       await link.approve(tweether.address, linkSuppliedAmount.toString(), { from: user1 })
       await tweether.mint(linkSuppliedAmount.toString(), { from: user1 })
 
@@ -281,7 +281,7 @@ contract('Tweether', (accounts) => {
 
       response = await tweether.vote(proposalId.toString(), votes.toString())
       eventLog = response.logs[0]
-      eventLog.event.toString().should.equal("TweetAccepted")
+      eventLog.event.toString().should.equal('TweetAccepted')
     })
   })
 })
