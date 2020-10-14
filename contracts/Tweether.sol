@@ -114,6 +114,26 @@ contract Tweether is ERC20, ERC721Holder{
         return linkReturned;
     }
 
+    function unvote(uint proposalId, uint numberOfVotes) external {
+        // Does the sender have enough votes locked to unvote?
+        require(balanceOf(msg.sender) >= numberOfVotes
+            && lockedVotes[msg.sender] >= numberOfVotes, "Not enough locked votes");
+        // Does the tweet exist?
+        require(proposalId < proposals.length, "Proposal doesn't exist");
+
+        // decrease lockedVotes
+        lockedVotes[msg.sender] = lockedVotes[msg.sender].sub(numberOfVotes);
+        // remove voteLocation for address
+        voteLocations[msg.sender][proposalId] = false;
+        // remove from list of voters
+        proposals[proposalId].voters.remove(msg.sender);
+        // decrease number of votes of the tweet
+        uint totalVotes = proposals[proposalId].votes.sub(numberOfVotes);
+        proposals[proposalId].votes = totalVotes;
+
+        checkVoteCount(proposalId);
+    }
+
     /**
      * @dev Vote on a proposal
      * @param proposalId ID of proposal
@@ -127,6 +147,8 @@ contract Tweether is ERC20, ERC721Holder{
         require(proposalId < proposals.length, "Proposal doesn't exist");
         // Is the proposal valid?
         require(proposals[proposalId].expiry > block.timestamp, "Proposal expired");
+        // Has the proposal been tweeted already?
+        require(proposals[proposalId].accepted != true, "Proposal already accepted");
         // Increase amount of votes locked for address
         lockedVotes[msg.sender] = lockedVotes[msg.sender].add(numberOfVotes);
         // Add vote location
@@ -139,6 +161,11 @@ contract Tweether is ERC20, ERC721Holder{
         uint totalVotes = proposals[proposalId].votes.add(numberOfVotes);
         proposals[proposalId].votes = totalVotes;
 
+        checkVoteCount(proposalId);
+    }
+
+    function checkVoteCount(uint proposalId) public {
+        uint totalVotes = proposals[proposalId].votes;
         // If votes tip over edge, transfer NFTwe
         if (totalVotes >= votesRequired()) {
             oracle.sendTweet(proposals[proposalId].content);
