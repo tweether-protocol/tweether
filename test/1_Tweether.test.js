@@ -13,7 +13,7 @@ function wadDiv(x, y) {
 }
 
 contract('Tweether', (accounts) => {
-  const [deployer] = accounts
+  const [deployer, user1] = accounts
 
   WAD = 10 ** 18
 
@@ -228,10 +228,10 @@ contract('Tweether', (accounts) => {
   })
 
   describe('voting on proposals', async () => {
-    let proposalReturn, proposalId
+    let proposalReturn, proposalId, linkSuppliedAmount
     beforeEach(async () => {
       let oneDayTweet = 'This is a 1 day tweet.'
-      let linkSuppliedAmount = 10 * WAD
+      linkSuppliedAmount = 10 * WAD
       await link.approve(tweether.address, linkSuppliedAmount.toString(), { from: deployer })
       await tweether.mint(linkSuppliedAmount.toString(), { from: deployer })
       proposalReturn = await tweether.proposeTweet(1, oneDayTweet)
@@ -266,6 +266,21 @@ contract('Tweether', (accounts) => {
 
       let response = await tweether.vote(proposalId.toString(), votes.toString())
       let eventLog = response.logs[0]
+      eventLog.event.toString().should.equal("TweetAccepted")
+    })
+
+    it('2nd voter votes enough to accept', async () => {
+      await link.transfer(user1, linkSuppliedAmount.toString(), {from: deployer})
+      await link.approve(tweether.address, linkSuppliedAmount.toString(), { from: user1 })
+      await tweether.mint(linkSuppliedAmount.toString(), { from: user1 })
+
+      let votes = (await tweether.votesRequired()) / 2
+
+      let response = await tweether.vote(proposalId.toString(), votes.toString())
+      response.logs.length.should.equal(0)
+
+      response = await tweether.vote(proposalId.toString(), votes.toString())
+      eventLog = response.logs[0]
       eventLog.event.toString().should.equal("TweetAccepted")
     })
   })
