@@ -266,7 +266,7 @@ contract('Tweether', (accounts) => {
 
       let response = await tweether.vote(proposalId.toString(), votes.toString())
       let eventLog = response.logs[0]
-      console.log(eventLog)
+      eventLog.event.toString().should.equal("TweetAccepted")
     })
   })
 })
