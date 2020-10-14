@@ -265,7 +265,7 @@ contract('Tweether', (accounts) => {
       parseInt(votes).should.be.gt(parseInt(votesRequired))
 
       let response = await tweether.vote(proposalId.toString(), votes.toString())
-      let eventLog = response.logs[0]
+      let eventLog = response.logs[1]
       eventLog.event.toString().should.equal('TweetAccepted')
     })
 
@@ -277,10 +277,10 @@ contract('Tweether', (accounts) => {
       let votes = (await tweether.votesRequired()) / 2
 
       let response = await tweether.vote(proposalId.toString(), votes.toString())
-      response.logs.length.should.equal(0)
+      response.logs.length.should.equal(1)
 
       response = await tweether.vote(proposalId.toString(), votes.toString())
-      eventLog = response.logs[0]
+      eventLog = response.logs[1]
       eventLog.event.toString().should.equal('TweetAccepted')
     })
   })

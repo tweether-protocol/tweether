@@ -58,6 +58,8 @@ contract Tweether is ERC20, ERC721Holder{
     mapping(address => mapping(uint => bool)) public voteLocations;
 
     event TweetProposed(uint proposalId, address proposer, uint expiryDate);
+    event VoteCast(uint proposalId, address voter, uint amount);
+    event VoteUncast(uint proposalId, address voter, uint amount);
     event TweetAccepted(uint proposalId, address finalVoter);
 
     /**
@@ -114,6 +116,11 @@ contract Tweether is ERC20, ERC721Holder{
         return linkReturned;
     }
 
+    /**
+     * @dev Unvote from a proposal
+     * @param proposalId ID of tweet proposal
+     * @param numberOfVotes number of votes to unvote
+     */
     function unvote(uint proposalId, uint numberOfVotes) external {
         // Does the sender have enough votes locked to unvote?
         require(balanceOf(msg.sender) >= numberOfVotes
@@ -130,7 +137,7 @@ contract Tweether is ERC20, ERC721Holder{
         // decrease number of votes of the tweet
         uint totalVotes = proposals[proposalId].votes.sub(numberOfVotes);
         proposals[proposalId].votes = totalVotes;
-
+        emit VoteUncast(proposalId, msg.sender, numberOfVotes);
         checkVoteCount(proposalId);
     }
 
@@ -160,10 +167,15 @@ contract Tweether is ERC20, ERC721Holder{
         // Vote on tweet
         uint totalVotes = proposals[proposalId].votes.add(numberOfVotes);
         proposals[proposalId].votes = totalVotes;
-
+        emit VoteCast(proposalId, msg.sender, numberOfVotes);
         checkVoteCount(proposalId);
     }
 
+    /**
+     * @dev Check the vote count of a proposal and tweet if
+     * it exceeds the votesRequired
+     * @param proposalId Tweet proposal ID
+     */
     function checkVoteCount(uint proposalId) public {
         uint totalVotes = proposals[proposalId].votes;
         // If votes tip over edge, transfer NFTwe
