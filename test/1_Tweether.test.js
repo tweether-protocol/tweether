@@ -8,6 +8,10 @@ require('chai').use(require('chai-as-promised')).should()
 const EVM_REVERT = 'VM Exception while processing transaction: revert'
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
 
+function wadDiv(x, y) {
+  return ( ( x * WAD ) + ( y /2 ) ) / y;
+}
+
 contract('Tweether', (accounts) => {
   const [deployer] = accounts
 
@@ -234,9 +238,35 @@ contract('Tweether', (accounts) => {
       proposalId = proposalReturn.logs[1].args.proposalId
     })
 
-    it('votes small amount', async () => {
+    it('should require the correct amount of votes to pass', async () => {
+      let tSupply = (await tweether.totalSupply())
+      let expected = wadDiv(tSupply, denominator)
+      let votesRequired = await tweether.votesRequired()
+      votesRequired.toString().should.equal(expected.toString())
+    })
+
+    it('1 owner votes small amount', async () => {
       let response = await tweether.vote(proposalId.toString(), WAD.toString())
-      console.log(response)
+      let proposalDetails = await tweether.getTweetProposal(proposalId.toString())
+      proposalDetails[3].toString().should.equal(WAD.toString())
+      let lockedVotes = await tweether.lockedVotes(deployer)
+      lockedVotes.toString().should.equal(WAD.toString())
+      let voteLocations = await tweether.voteLocations(deployer, proposalId.toString())
+      voteLocations.should.equal(true)
+    })
+
+    it('1 owner votes enough to accept', async () => {
+      let tweBalance = await tweether.balanceOf(deployer)
+      let lockedVotes = await tweether.lockedVotes(deployer)
+      let votesLeft = tweBalance - lockedVotes
+      let votes = votesLeft / 2
+      // Make sure that votes is supposed to be greater than votes required first
+      let votesRequired = await tweether.votesRequired()
+      parseInt(votes).should.be.gt(parseInt(votesRequired))
+
+      let response = await tweether.vote(proposalId.toString(), votes.toString())
+      let eventLog = response.logs[0]
+      console.log(eventLog)
     })
   })
 })

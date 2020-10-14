@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
 import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 import "./oracle/IOracle.sol";
 import "./NFTwe.sol";
-import "./WadMath.sol";
+import "./utils/WadMath.sol";
 import "./utils/TweetContent.sol";
 
 /**
@@ -45,16 +45,17 @@ contract Tweether is ERC20, ERC721Holder{
         string content;
         uint votes;
         bool accepted;
+
         EnumerableSet.AddressSet voters;
         mapping(address => uint) voteAmounts;
     }
 
     Tweet[] private proposals;
 
-    // Total votes locked by each address
-    mapping(address => uint) private lockedVotes;
+    // Total number of votes locked by each address
+    mapping(address => uint) public lockedVotes;
     // Vote locations for each voter
-    mapping(address => mapping(uint => bool)) private voteLocations;
+    mapping(address => mapping(uint => bool)) public voteLocations;
 
     event TweetProposed(uint proposalId, address proposer, uint expiryDate);
     event TweetAccepted(uint proposalId, address finalVoter);
@@ -157,9 +158,8 @@ contract Tweether is ERC20, ERC721Holder{
      * @return Number of TWE votes required
      */
     function votesRequired() public view returns (uint) {
-        // (oracleCost * totalTweSupply) / linkBalance
-        (uint oracleCost, ) = oracleCost();
-        return (oracleCost.wadMul(totalSupply())).wadDiv(linkBalance());
+        // totalSupply / denominator
+        return totalSupply().wadDiv(tweetherDenominator);
     }
 
     /**
