@@ -168,6 +168,9 @@ contract Tweether is ERC20, ERC721Holder{
         uint totalVotes = proposals[proposalId].votes;
         // If votes tip over edge, transfer NFTwe
         if (totalVotes >= votesRequired()) {
+            proposals[proposalId].accepted = true;
+            // TODO: Unlock votes!
+            emit TweetAccepted(proposalId, msg.sender);
             oracle.sendTweet(proposals[proposalId].content);
             nftwe.newTweet(
                 proposals[proposalId].proposer,
@@ -175,8 +178,6 @@ contract Tweether is ERC20, ERC721Holder{
                 block.timestamp,
                 msg.sender
             );
-            emit TweetAccepted(proposalId, msg.sender);
-            // TODO: Unlock votes!
         }
     }
 
