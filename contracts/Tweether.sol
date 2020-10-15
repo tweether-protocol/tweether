@@ -3,7 +3,6 @@ pragma solidity ^0.6.10;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
 import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 import "./oracle/IOracle.sol";
 import "./NFTwe.sol";
@@ -14,7 +13,7 @@ import "./utils/TweetContent.sol";
  * @dev Tweether Protocol gov contract
  * @author Alex Roan (@alexroan)
  */
-contract Tweether is ERC20, ERC721Holder{
+contract Tweether is ERC20{
     using WadMath for uint;
     using TweetContent for string;
     using EnumerableSet for EnumerableSet.AddressSet;
