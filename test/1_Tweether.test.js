@@ -8,6 +8,7 @@ require('chai').use(require('chai-as-promised')).should()
 
 const EVM_REVERT = 'VM Exception while processing transaction: revert'
 const EVM_ORACLE_REVERT = 'VM Exception while processing transaction: revert Source must be the oracle of the request'
+const EVM_GOVERNANCE_REVERT = 'VM Exception while processing transaction: revert Source must be the governance contract'
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 function wadDiv(x, y) {
@@ -27,17 +28,20 @@ contract('Tweether', (accounts) => {
     oracleclient = await MockOracleClient.new(link.address, { from: deployer })
     nftwe = await NFTwe.new({ from: deployer })
     tweether = await Tweether.new(oracleclient.address, nftwe.address, denominator.toString(), { from: deployer })
+    await oracleclient.setGovernance(tweether.address)
     await nftwe.transferOwnership(tweether.address, { from: deployer })
   })
 
   describe('deployment', async () => {
-    it('sets the correct state variables', async () => {
+    it('sets the correct state variables on deployment', async () => {
       let linkAddress = await tweether.link()
       linkAddress.should.equal(link.address)
       let oracleclientAddress = await tweether.oracleclient()
       oracleclientAddress.should.equal(oracleclient.address)
       let denom = await tweether.tweetherDenominator()
       denom.toString().should.equal(denominator.toString())
+      let governanceUpdated = await oracleclient.governanceSet()
+      governanceUpdated.should.equal(true)
     })
 
     it('sets the correct oracle values', async () => {
@@ -66,23 +70,7 @@ contract('Tweether', (accounts) => {
       linkBalanceResult.toString().should.equal(expectedMintAmount.toString())
     })
   })
-  describe('sending requests', async () => {
-    context('sends a mock Tweet Request', () => {
-      it('triggers a log event in the new Oracle contract', async () => {
-        let status = "Let's try a status"
-        const successfulTweet = await oracleclient.sendTweet(status)
-        let oracleclientLog = successfulTweet.logs[0]
-      })
-    })
-    context('Response from the oracle', () => {
-      it('Reverts if the chainlink node isn\'t the one to respond', async () => {
-        await oracleclient.returnTweetId(web3.utils.toHex("f"), 7).should.be.rejectedWith(EVM_ORACLE_REVERT)
-      })
-      // it('Returns a successful tweetId', async () => {
-      //   await oracleclient.returnTweetId(ethers.utils.formatBytes32String("f"), 7, { from: pendingRequests[_requestId] })
-      // })
-    })
-  })
+
 
   describe('minting and burning', async () => {
     it('mints TWE for LINK 1:1 before any proposals or tweets', async () => {
@@ -182,7 +170,6 @@ contract('Tweether', (accounts) => {
       tweCost.toString().should.equal(expectedPrice.toString())
     })
   })
-
   describe('proposing a tweet', async () => {
     beforeEach(async () => {
       let linkSuppliedAmount = 4 * WAD

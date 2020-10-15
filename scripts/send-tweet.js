@@ -1,6 +1,6 @@
 const OracleClient = artifacts.require('OracleClient')
 
-const STATUS = "Watch out for the GHOSTS! https://www.youtube.com/watch?v=awkUfIjl1R0&list=RD_CpWBXBAk1k&index=4"
+const STATUS = "It's raining not so bad jams https://www.youtube.com/watch?v=fRl6fb4LBIg&list=RDBwBK2xkjaSU&index=8"
 
 module.exports = async callback => {
     try {

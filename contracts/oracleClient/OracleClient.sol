@@ -16,12 +16,20 @@ contract OracleClient is ChainlinkClient, Ownable {
     uint256 public mostRecentTweetId;
     address public governance;
 
-    constructor(address _governance) public {
+    bool public governanceSet;
+
+    constructor() public {
         setPublicChainlinkToken();
         ORACLE_ADDRESS = 0xAA1DC356dc4B18f30C347798FD5379F3D77ABC5b;
         JOBID = "09f3d678301a408cb6a8ab983932636d";
         PRICE = 1 * 10 ** DECIMALS; // 1 LINK
+        governanceSet = false;
+    }
+
+    function setGovernance(address _governance) external onlyOwner {
+        require(governanceSet == false, "Governance can only be set once!");
         governance = _governance;
+        governanceSet = true;
     }
 
     function getPrice() external view returns (uint256, uint256){
