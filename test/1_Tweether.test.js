@@ -283,5 +283,47 @@ contract('Tweether', (accounts) => {
       eventLog = response.logs[1]
       eventLog.event.toString().should.equal('TweetAccepted')
     })
+
+    // TODO: check all state changes:
+    //  - Tweet.votes
+    //  - Tweet.voters
+    //  - Tweet.voteAmounts
+    //  - lockedVotes
+    //  - voteLocations
+  })
+
+  describe('unvoting on proposals', async () => {
+    let proposalReturn, proposalId, linkSuppliedAmount, votes
+    beforeEach(async () => {
+      let oneDayTweet = 'This is a 1 day tweet.'
+      linkSuppliedAmount = 10 * WAD
+      await link.approve(tweether.address, linkSuppliedAmount.toString(), { from: deployer })
+      await tweether.mint(linkSuppliedAmount.toString(), { from: deployer })
+      proposalReturn = await tweether.proposeTweet(1, oneDayTweet)
+      proposalId = proposalReturn.logs[1].args.proposalId
+      votes = WAD * 2
+      await tweether.vote(proposalId.toString(), votes.toString())
+    })
+
+    it('unvotes', async () => {
+      let votesLocked = await tweether.lockedVotes(deployer)
+      let voteLocations = await tweether.voteLocations(deployer, proposalId.toString())
+      votesLocked.toString().should.equal(votes.toString())
+      voteLocations.should.equal(true)
+
+      let unvotes = votes / 2
+      await tweether.unvote(proposalId.toString(), unvotes.toString(), { from: deployer })
+      votesLocked = await tweether.lockedVotes(deployer)
+      voteLocations = await tweether.voteLocations(deployer, proposalId.toString())
+      votesLocked.toString().should.equal(unvotes.toString())
+      voteLocations.should.equal(true)
+    })
+
+    // TODO: check all state changes:
+    //  - Tweet.votes
+    //  - Tweet.voters
+    //  - Tweet.voteAmounts
+    //  - lockedVotes
+    //  - voteLocations
   })
 })

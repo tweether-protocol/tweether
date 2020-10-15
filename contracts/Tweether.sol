@@ -128,15 +128,22 @@ contract Tweether is ERC20, ERC721Holder{
         // Does the tweet exist?
         require(proposalId < proposals.length, "Proposal doesn't exist");
 
-        // decrease lockedVotes
-        lockedVotes[msg.sender] = lockedVotes[msg.sender].sub(numberOfVotes);
-        // remove voteLocation for address
-        voteLocations[msg.sender][proposalId] = false;
-        // remove from list of voters
-        proposals[proposalId].voters.remove(msg.sender);
         // decrease number of votes of the tweet
         uint totalVotes = proposals[proposalId].votes.sub(numberOfVotes);
         proposals[proposalId].votes = totalVotes;
+        // decrease lockedVotes
+        lockedVotes[msg.sender] = lockedVotes[msg.sender].sub(numberOfVotes);
+        // decrease vote amounts for user on proposal
+        proposals[proposalId].voteAmounts[msg.sender]
+            = proposals[proposalId].voteAmounts[msg.sender].sub(numberOfVotes);
+        // if the remaining votes on this proposal, by this address is now 0
+        // remove them from the list of voters and the locked vote locations
+        if (totalVotes == 0) {
+            // remove voteLocation for address
+            voteLocations[msg.sender][proposalId] = false;
+            // remove from list of voters
+            proposals[proposalId].voters.remove(msg.sender);
+        }
         emit VoteUncast(proposalId, msg.sender, numberOfVotes);
         checkVoteCount(proposalId);
     }
