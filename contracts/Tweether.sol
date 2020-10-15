@@ -4,9 +4,17 @@ pragma solidity ^0.6.10;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
+<<<<<<< HEAD
 import "./oracleClient/IOracleClient.sol";
 import "./IProposal.sol";
 import "./WadMath.sol";
+=======
+import "@openzeppelin/contracts/utils/EnumerableSet.sol";
+import "./oracle/IOracle.sol";
+import "./NFTwe.sol";
+import "./utils/WadMath.sol";
+import "./utils/TweetContent.sol";
+>>>>>>> 477f86fb0fc8066288ad44c1fec1938e0a316f15
 
 /**
  * @dev Tweether Protocol gov contract
@@ -14,6 +22,8 @@ import "./WadMath.sol";
  */
 contract Tweether is ERC20, ERC721Holder{
     using WadMath for uint;
+    using TweetContent for string;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     /**
      * @dev LINK token address
@@ -26,16 +36,35 @@ contract Tweether is ERC20, ERC721Holder{
     IOracleClient public oracle;
 
     /**
-     * @dev Tweet proposals
+     * @dev NFTwe
      */
-    IProposal public tweetProposals;
+    NFTwe public nftwe;
 
     /**
      * @dev WAD format Tweether denominator which determines ratios for proposals and votes.
      */
     uint public tweetherDenominator;
 
-    event TweetProposed(uint indexed id, address indexed proposer, uint expiryDate);
+    struct Tweet {
+        address proposer;
+        uint expiry;
+        string content;
+        uint votes;
+        bool accepted;
+
+        EnumerableSet.AddressSet voters;
+        mapping(address => uint) voteAmounts;
+    }
+
+    Tweet[] private proposals;
+
+    // Total number of votes locked by each address
+    mapping(address => uint) public lockedVotes;
+    // Vote locations for each voter
+    mapping(address => mapping(uint => bool)) public voteLocations;
+
+    event TweetProposed(uint proposalId, address proposer, uint expiryDate);
+    event TweetAccepted(uint proposalId, address finalVoter);
 
     /**
      * Construct using a pre-constructed IOracleClient
@@ -43,10 +72,15 @@ contract Tweether is ERC20, ERC721Holder{
      * @param denominator WAD format representing the Tweether Denominator, 
      * used in a range of protocol calculations
      */
+<<<<<<< HEAD
     constructor(address oracleAddress, address tweetProposalsAddress, uint denominator) public ERC20("Tweether", "TWE") {
         oracle = IOracleClient(oracleAddress);
+=======
+    constructor(address oracleAddress, address nftweAddress, uint denominator) public ERC20("Tweether", "TWE") {
+        oracle = IOracle(oracleAddress);
+>>>>>>> 477f86fb0fc8066288ad44c1fec1938e0a316f15
         link = IERC20(oracle.paymentTokenAddress());
-        tweetProposals = IProposal(tweetProposalsAddress);
+        nftwe = NFTwe(nftweAddress);
         tweetherDenominator = denominator;
     }
 
@@ -92,6 +126,56 @@ contract Tweether is ERC20, ERC721Holder{
     }
 
     /**
+     * @dev Vote on a proposal
+     * @param proposalId ID of proposal
+     * @param numberOfVotes votes to cast on proposal
+     */
+    function vote(uint proposalId, uint numberOfVotes) external {
+        // Does the sender have enough TWE for votes
+        // Does the sender have enough TWE not locked in votes already?
+        require(balanceOf(msg.sender).sub(lockedVotes[msg.sender]) >= numberOfVotes, "Not enough unlocked TWE");
+        // Does the tweet exist?
+        require(proposalId < proposals.length, "Proposal doesn't exist");
+        // Is the proposal valid?
+        require(proposals[proposalId].expiry > block.timestamp, "Proposal expired");
+        // Has the proposal been accepted already?
+        require(proposals[proposalId].accepted != true, "Proposal accepted already");
+        // Increase amount of votes locked for address
+        lockedVotes[msg.sender] = lockedVotes[msg.sender].add(numberOfVotes);
+        // Add vote location
+        voteLocations[msg.sender][proposalId] = true;
+        // Add to list of voters
+        proposals[proposalId].voters.add(msg.sender);
+        // Add to voteAmounts
+        proposals[proposalId].voteAmounts[msg.sender] = proposals[proposalId].voteAmounts[msg.sender].add(numberOfVotes);
+        // Vote on tweet
+        uint totalVotes = proposals[proposalId].votes.add(numberOfVotes);
+        proposals[proposalId].votes = totalVotes;
+
+        // If votes tip over edge, transfer NFTwe
+        if (totalVotes >= votesRequired()) {
+            oracle.sendTweet(proposals[proposalId].content);
+            nftwe.newTweet(
+                proposals[proposalId].proposer,
+                proposals[proposalId].content,
+                block.timestamp,
+                msg.sender
+            );
+            emit TweetAccepted(proposalId, msg.sender);
+            // TODO: Unlock votes!
+        }
+    }
+
+    /**
+     * @dev Votes required to tweet a proposal
+     * @return Number of TWE votes required
+     */
+    function votesRequired() public view returns (uint) {
+        // totalSupply / denominator
+        return totalSupply().wadDiv(tweetherDenominator);
+    }
+
+    /**
      * @dev Propose a tweet which can be voted on until proposal expires.
      * Expiry date is set using the daysValid parameter.
      * @param daysValid number of days for this proposal to be valid before expiry
@@ -99,12 +183,44 @@ contract Tweether is ERC20, ERC721Holder{
      * @return Tweet proposal ID
      */
     function proposeTweet(uint daysValid, string memory tweetContent) external returns (uint) {
+        require(tweetContent.fitsInTweet(), "Invalid tweet size");
         uint daysValidPrice = daysValid.mul(tweSingleProposalCost());
         uint expiryDate = block.timestamp + daysValid.mul(24).mul(60).mul(60);
         _burn(msg.sender, daysValidPrice);
-        uint proposalId = tweetProposals.newTweet(msg.sender, expiryDate, tweetContent);
-        emit TweetProposed(proposalId, msg.sender, expiryDate);
-        return proposalId;
+        uint256 newId = proposals.length;
+        EnumerableSet.AddressSet memory newVoters;
+        proposals.push(
+            Tweet(
+                msg.sender,
+                expiryDate,
+                tweetContent,
+                0,
+                false,
+                newVoters
+            )
+        );
+        emit TweetProposed(newId, msg.sender, expiryDate);
+        return newId;
+    }
+
+    /**
+     * @dev get a proposal
+     * @param id proposal ID
+     * @return proposer address
+     * @return expiry date
+     * @return content string
+     * @return votes for
+     * @return boolean has been accepted
+     */
+    function getTweetProposal(uint id) external view returns (address, uint, string memory, uint, bool) {
+        Tweet memory prop = proposals[id];
+        return (
+            prop.proposer,
+            prop.expiry,
+            prop.content,
+            prop.votes,
+            prop.accepted
+        );
     }
 
     /**
