@@ -1,27 +1,31 @@
 const Tweether = artifacts.require('Tweether')
 const MockERC20 = artifacts.require('MockERC20')
 const MockOracle = artifacts.require('MockOracle')
-const Proposal = artifacts.require('Proposal')
+const NFTwe = artifacts.require('NFTwe')
 
 require('chai').use(require('chai-as-promised')).should()
 
 const EVM_REVERT = 'VM Exception while processing transaction: revert'
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
 
+function wadDiv(x, y) {
+  return (x * WAD + y / 2) / y
+}
+
 contract('Tweether', (accounts) => {
-  const [deployer] = accounts
+  const [deployer, user1] = accounts
 
   WAD = 10 ** 18
 
-  let link, oracle, tweetProposals, tweether
+  let link, oracle, nftwe, tweether
   const denominator = 5 * WAD
 
   beforeEach(async () => {
     link = await MockERC20.new({ from: deployer })
     oracle = await MockOracle.new(link.address, { from: deployer })
-    tweetProposals = await Proposal.new({ from: deployer })
-    tweether = await Tweether.new(oracle.address, tweetProposals.address, denominator.toString(), { from: deployer })
-    await tweetProposals.transferOwnership(tweether.address, { from: deployer })
+    nftwe = await NFTwe.new({ from: deployer })
+    tweether = await Tweether.new(oracle.address, nftwe.address, denominator.toString(), { from: deployer })
+    await nftwe.transferOwnership(tweether.address, { from: deployer })
   })
 
   describe('deployment', async () => {
@@ -201,24 +205,83 @@ contract('Tweether', (accounts) => {
     })
 
     it('submits a proposal for 5 day and sets the correct expiry date', async () => {
-      let oneDayTweet = 'This is a 5 day tweet.'
+      let fiveDayTweet = 'This is a 5 day tweet.'
       let tomorrow = Math.floor(Date.now() / 1000) + 5 * 24 * 60 * 60
       let lowerDateLimit = tomorrow - 120
       let upperDateLimit = tomorrow + 120
-      let proposalReturn = await tweether.proposeTweet(5, oneDayTweet)
+      let proposalReturn = await tweether.proposeTweet(5, fiveDayTweet)
       let eventLog = proposalReturn.logs[1]
       parseInt(eventLog.args.expiryDate).should.be.gt(lowerDateLimit)
       parseInt(eventLog.args.expiryDate).should.be.lt(upperDateLimit)
     })
 
-    it('creates an NFTwe', async () => {
-      let oneDayTweet = 'This is a 5 day tweet.'
+    it('creates a proposal', async () => {
+      let oneDayTweet = 'This is a 1 day tweet.'
       let proposalReturn = await tweether.proposeTweet(1, oneDayTweet)
-      let proposalId = proposalReturn.logs[1].args.id
-      let prop = await tweetProposals.get(proposalId.toString())
+      let proposalId = proposalReturn.logs[1].args.proposalId
+      let prop = await tweether.getTweetProposal(proposalId.toString())
       prop[0].toString().should.equal(deployer.toString())
       prop[2].toString().should.equal(oneDayTweet)
-      prop[3].should.equal(false)
+      prop[3].toString().should.equal('0')
+      prop[4].should.equal(false)
+    })
+  })
+
+  describe('voting on proposals', async () => {
+    let proposalReturn, proposalId, linkSuppliedAmount
+    beforeEach(async () => {
+      let oneDayTweet = 'This is a 1 day tweet.'
+      linkSuppliedAmount = 10 * WAD
+      await link.approve(tweether.address, linkSuppliedAmount.toString(), { from: deployer })
+      await tweether.mint(linkSuppliedAmount.toString(), { from: deployer })
+      proposalReturn = await tweether.proposeTweet(1, oneDayTweet)
+      proposalId = proposalReturn.logs[1].args.proposalId
+    })
+
+    it('should require the correct amount of votes to pass', async () => {
+      let tSupply = await tweether.totalSupply()
+      let expected = wadDiv(tSupply, denominator)
+      let votesRequired = await tweether.votesRequired()
+      votesRequired.toString().should.equal(expected.toString())
+    })
+
+    it('1 owner votes small amount', async () => {
+      let response = await tweether.vote(proposalId.toString(), WAD.toString())
+      let proposalDetails = await tweether.getTweetProposal(proposalId.toString())
+      proposalDetails[3].toString().should.equal(WAD.toString())
+      let lockedVotes = await tweether.lockedVotes(deployer)
+      lockedVotes.toString().should.equal(WAD.toString())
+      let voteLocations = await tweether.voteLocations(deployer, proposalId.toString())
+      voteLocations.should.equal(true)
+    })
+
+    it('1 owner votes enough to accept', async () => {
+      let tweBalance = await tweether.balanceOf(deployer)
+      let lockedVotes = await tweether.lockedVotes(deployer)
+      let votesLeft = tweBalance - lockedVotes
+      let votes = votesLeft / 2
+      // Make sure that votes is supposed to be greater than votes required first
+      let votesRequired = await tweether.votesRequired()
+      parseInt(votes).should.be.gt(parseInt(votesRequired))
+
+      let response = await tweether.vote(proposalId.toString(), votes.toString())
+      let eventLog = response.logs[0]
+      eventLog.event.toString().should.equal('TweetAccepted')
+    })
+
+    it('2nd voter votes enough to accept', async () => {
+      await link.transfer(user1, linkSuppliedAmount.toString(), { from: deployer })
+      await link.approve(tweether.address, linkSuppliedAmount.toString(), { from: user1 })
+      await tweether.mint(linkSuppliedAmount.toString(), { from: user1 })
+
+      let votes = (await tweether.votesRequired()) / 2
+
+      let response = await tweether.vote(proposalId.toString(), votes.toString())
+      response.logs.length.should.equal(0)
+
+      response = await tweether.vote(proposalId.toString(), votes.toString())
+      eventLog = response.logs[0]
+      eventLog.event.toString().should.equal('TweetAccepted')
     })
   })
 })
