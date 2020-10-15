@@ -301,7 +301,7 @@ contract('Tweether', (accounts) => {
       await tweether.mint(linkSuppliedAmount.toString(), { from: deployer })
       proposalReturn = await tweether.proposeTweet(1, oneDayTweet)
       proposalId = proposalReturn.logs[1].args.proposalId
-      votes = WAD * 2
+      votes = WAD
       await tweether.vote(proposalId.toString(), votes.toString())
     })
 

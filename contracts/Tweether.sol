@@ -177,12 +177,17 @@ contract Tweether is ERC20{
         // If votes tip over edge, accept tweet
         if (totalVotes >= votesRequired()) {
             _acceptTweet(proposalId);
-            // _unlockVotes(proposalId);
         }
     }
 
     function _acceptTweet(uint proposalId) internal {
         proposals[proposalId].accepted = true;
+        // Unlock votes, but maintain history in proposal
+        for (uint index = 0; index < proposals[proposalId].voters.length(); index++) {
+            address voter = proposals[proposalId].voters.at(index);
+            lockedVotes[voter] = lockedVotes[voter].sub(voteAmounts[voter][proposalId]);
+            voteAmounts[voter][proposalId] = 0;
+        }
         emit TweetAccepted(proposalId, msg.sender);
         oracle.sendTweet(proposals[proposalId].content);
         nftwe.newTweet(
@@ -192,15 +197,6 @@ contract Tweether is ERC20{
             msg.sender
         );
     }
-
-    // function _unlockVotes(uint proposalId) internal {
-    //     for (uint index = 0; index < proposals[proposalId].voters.length; index++) {
-    //         address voter = proposals[proposalId].voters[index];
-    //         voteAmounts[voter][proposalId] = 0;
-    //     }
-    //     proposals[proposalId].votes = 0;
-    //     proposals[proposalId].voters = new EnumerableSet.AddressSet();
-    // }
 
     /**
      * @dev Votes required to tweet a proposal
