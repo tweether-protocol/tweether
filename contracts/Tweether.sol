@@ -44,17 +44,14 @@ contract Tweether is ERC20{
         string content;
         uint votes;
         bool accepted;
-
         EnumerableSet.AddressSet voters;
-        mapping(address => uint) voteAmounts;
     }
 
     Tweet[] private proposals;
 
-    // Total number of votes locked by each address
+    // Votes per proposal per address
+    mapping(address => mapping(uint => uint)) public voteAmounts;
     mapping(address => uint) public lockedVotes;
-    // Vote locations for each voter
-    mapping(address => mapping(uint => bool)) public voteLocations;
 
     event TweetProposed(uint proposalId, address proposer, uint expiryDate);
     event VoteCast(uint proposalId, address voter, uint amount);
@@ -130,16 +127,12 @@ contract Tweether is ERC20{
         // decrease number of votes of the tweet
         uint totalVotes = proposals[proposalId].votes.sub(numberOfVotes);
         proposals[proposalId].votes = totalVotes;
-        // decrease lockedVotes
-        lockedVotes[msg.sender] = lockedVotes[msg.sender].sub(numberOfVotes);
         // decrease vote amounts for user on proposal
-        proposals[proposalId].voteAmounts[msg.sender]
-            = proposals[proposalId].voteAmounts[msg.sender].sub(numberOfVotes);
+        voteAmounts[msg.sender][proposalId] = voteAmounts[msg.sender][proposalId].sub(numberOfVotes);
+        lockedVotes[msg.sender] = lockedVotes[msg.sender].sub(numberOfVotes);
         // if the remaining votes on this proposal, by this address is now 0
-        // remove them from the list of voters and the locked vote locations
+        // remove them from the list of voters
         if (totalVotes == 0) {
-            // remove voteLocation for address
-            voteLocations[msg.sender][proposalId] = false;
             // remove from list of voters
             proposals[proposalId].voters.remove(msg.sender);
         }
@@ -162,14 +155,11 @@ contract Tweether is ERC20{
         require(proposals[proposalId].expiry > block.timestamp, "Proposal expired");
         // Has the proposal been accepted already?
         require(proposals[proposalId].accepted != true, "Proposal accepted already");
-        // Increase amount of votes locked for address
-        lockedVotes[msg.sender] = lockedVotes[msg.sender].add(numberOfVotes);
-        // Add vote location
-        voteLocations[msg.sender][proposalId] = true;
         // Add to list of voters
         proposals[proposalId].voters.add(msg.sender);
         // Add to voteAmounts
-        proposals[proposalId].voteAmounts[msg.sender] = proposals[proposalId].voteAmounts[msg.sender].add(numberOfVotes);
+        voteAmounts[msg.sender][proposalId] = voteAmounts[msg.sender][proposalId].add(numberOfVotes);
+        lockedVotes[msg.sender] = lockedVotes[msg.sender].add(numberOfVotes);
         // Vote on tweet
         uint totalVotes = proposals[proposalId].votes.add(numberOfVotes);
         proposals[proposalId].votes = totalVotes;
@@ -184,20 +174,33 @@ contract Tweether is ERC20{
      */
     function checkVoteCount(uint proposalId) public {
         uint totalVotes = proposals[proposalId].votes;
-        // If votes tip over edge, transfer NFTwe
+        // If votes tip over edge, accept tweet
         if (totalVotes >= votesRequired()) {
-            proposals[proposalId].accepted = true;
-            // TODO: Unlock votes!
-            emit TweetAccepted(proposalId, msg.sender);
-            oracle.sendTweet(proposals[proposalId].content);
-            nftwe.newTweet(
-                proposals[proposalId].proposer,
-                proposals[proposalId].content,
-                block.timestamp,
-                msg.sender
-            );
+            _acceptTweet(proposalId);
+            // _unlockVotes(proposalId);
         }
     }
+
+    function _acceptTweet(uint proposalId) internal {
+        proposals[proposalId].accepted = true;
+        emit TweetAccepted(proposalId, msg.sender);
+        oracle.sendTweet(proposals[proposalId].content);
+        nftwe.newTweet(
+            proposals[proposalId].proposer,
+            proposals[proposalId].content,
+            block.timestamp,
+            msg.sender
+        );
+    }
+
+    // function _unlockVotes(uint proposalId) internal {
+    //     for (uint index = 0; index < proposals[proposalId].voters.length; index++) {
+    //         address voter = proposals[proposalId].voters[index];
+    //         voteAmounts[voter][proposalId] = 0;
+    //     }
+    //     proposals[proposalId].votes = 0;
+    //     proposals[proposalId].voters = new EnumerableSet.AddressSet();
+    // }
 
     /**
      * @dev Votes required to tweet a proposal

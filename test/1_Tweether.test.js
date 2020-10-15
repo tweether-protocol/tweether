@@ -251,8 +251,9 @@ contract('Tweether', (accounts) => {
       proposalDetails[3].toString().should.equal(WAD.toString())
       let lockedVotes = await tweether.lockedVotes(deployer)
       lockedVotes.toString().should.equal(WAD.toString())
-      let voteLocations = await tweether.voteLocations(deployer, proposalId.toString())
-      voteLocations.should.equal(true)
+      // TODO change this to voteAmounts check
+      // let voteLocations = await tweether.voteLocations(deployer, proposalId.toString())
+      // voteLocations.should.equal(true)
     })
 
     it('1 owner votes enough to accept', async () => {
@@ -287,9 +288,8 @@ contract('Tweether', (accounts) => {
     // TODO: check all state changes:
     //  - Tweet.votes
     //  - Tweet.voters
-    //  - Tweet.voteAmounts
+    //  - voteAmounts
     //  - lockedVotes
-    //  - voteLocations
   })
 
   describe('unvoting on proposals', async () => {
@@ -307,23 +307,24 @@ contract('Tweether', (accounts) => {
 
     it('unvotes', async () => {
       let votesLocked = await tweether.lockedVotes(deployer)
-      let voteLocations = await tweether.voteLocations(deployer, proposalId.toString())
       votesLocked.toString().should.equal(votes.toString())
-      voteLocations.should.equal(true)
+      // TODO: change this to voteAmounts check
+      // let voteLocations = await tweether.voteLocations(deployer, proposalId.toString())
+      // voteLocations.should.equal(true)
 
       let unvotes = votes / 2
       await tweether.unvote(proposalId.toString(), unvotes.toString(), { from: deployer })
       votesLocked = await tweether.lockedVotes(deployer)
-      voteLocations = await tweether.voteLocations(deployer, proposalId.toString())
       votesLocked.toString().should.equal(unvotes.toString())
-      voteLocations.should.equal(true)
+      // TODO: change this to voteAmounts check
+      // voteLocations = await tweether.voteLocations(deployer, proposalId.toString())
+      // voteLocations.should.equal(true)
     })
 
     // TODO: check all state changes:
     //  - Tweet.votes
     //  - Tweet.voters
-    //  - Tweet.voteAmounts
+    //  - voteAmounts
     //  - lockedVotes
-    //  - voteLocations
   })
 })
