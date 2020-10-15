@@ -47,10 +47,4 @@ contract OracleClient is ChainlinkClient, Ownable {
         require(msg.sender == governance, "Source must be the governance contract");
         _;
     }
-    
-    // We don't want the owner able to withdraw
-    // function withdrawLink() public onlyOwner {
-    //     LinkTokenInterface link = LinkTokenInterface(chainlinkTokenAddress());
-    //     require(link.transfer(msg.sender, link.balanceOf(address(this))), "Unable to transfer");
-    // }
 }

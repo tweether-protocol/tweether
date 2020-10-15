@@ -2,7 +2,7 @@ const Tweether = artifacts.require('Tweether')
 const MockERC20 = artifacts.require('MockERC20')
 const MockOracleClient = artifacts.require('MockOracleClient')
 const NFTwe = artifacts.require('NFTwe')
-const ethers = require('ethers')
+const web3 = require('web3')
 
 require('chai').use(require('chai-as-promised')).should()
 
@@ -76,7 +76,7 @@ contract('Tweether', (accounts) => {
     })
     context('Response from the oracle', () => {
       it('Reverts if the chainlink node isn\'t the one to respond', async () => {
-        await oracleclient.returnTweetId(ethers.utils.formatBytes32String("f"), 7).should.be.rejectedWith(EVM_ORACLE_REVERT)
+        await oracleclient.returnTweetId(web3.utils.toHex("f"), 7).should.be.rejectedWith(EVM_ORACLE_REVERT)
       })
       // it('Returns a successful tweetId', async () => {
       //   await oracleclient.returnTweetId(ethers.utils.formatBytes32String("f"), 7, { from: pendingRequests[_requestId] })
