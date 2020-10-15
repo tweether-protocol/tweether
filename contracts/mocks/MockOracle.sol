@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.10;
 
-import "../oracle/IOracle.sol";
+import "../oracleClient/IOracleClient.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract MockOracle is IOracle {
+contract MockOracle is IOracleClient {
 
     IERC20 private _paymentToken;
     uint private _price = 10**18;
@@ -16,7 +16,7 @@ contract MockOracle is IOracle {
         _paymentToken = IERC20(paymentTokenAddress);
     }
 
-    function price() external view override returns (uint, uint) {
+    function getPrice() external view override returns (uint, uint) {
         return (_price, _decs);
     }
 

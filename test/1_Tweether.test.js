@@ -38,7 +38,7 @@ contract('Tweether', (accounts) => {
       let oracleCostResult = await tweether.oracleCost()
       let { 0: price, 1: decimals } = oracleCostResult
 
-      let actualOracleCost = await oracle.price()
+      let actualOracleCost = await oracle.getPrice()
       let { 0: expectedPrice, 1: expectedDecimals } = actualOracleCost
 
       price.toString().should.equal(expectedPrice.toString())
