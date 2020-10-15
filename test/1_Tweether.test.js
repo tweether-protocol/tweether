@@ -1,11 +1,13 @@
 const Tweether = artifacts.require('Tweether')
 const MockERC20 = artifacts.require('MockERC20')
-const MockOracle = artifacts.require('MockOracle')
+const MockOracleClient = artifacts.require('MockOracleClient')
 const NFTwe = artifacts.require('NFTwe')
+const ethers = require('ethers')
 
 require('chai').use(require('chai-as-promised')).should()
 
 const EVM_REVERT = 'VM Exception while processing transaction: revert'
+const EVM_ORACLE_REVERT = 'VM Exception while processing transaction: revert Source must be the oracle of the request'
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 function wadDiv(x, y) {
@@ -17,14 +19,14 @@ contract('Tweether', (accounts) => {
 
   WAD = 10 ** 18
 
-  let link, oracle, nftwe, tweether
+  let link, oracleclient, nftwe, tweether
   const denominator = 5 * WAD
 
   beforeEach(async () => {
     link = await MockERC20.new({ from: deployer })
-    oracle = await MockOracle.new(link.address, { from: deployer })
+    oracleclient = await MockOracleClient.new(link.address, { from: deployer })
     nftwe = await NFTwe.new({ from: deployer })
-    tweether = await Tweether.new(oracle.address, nftwe.address, denominator.toString(), { from: deployer })
+    tweether = await Tweether.new(oracleclient.address, nftwe.address, denominator.toString(), { from: deployer })
     await nftwe.transferOwnership(tweether.address, { from: deployer })
   })
 
@@ -32,8 +34,8 @@ contract('Tweether', (accounts) => {
     it('sets the correct state variables', async () => {
       let linkAddress = await tweether.link()
       linkAddress.should.equal(link.address)
-      let oracleAddress = await tweether.oracle()
-      oracleAddress.should.equal(oracle.address)
+      let oracleclientAddress = await tweether.oracleclient()
+      oracleclientAddress.should.equal(oracleclient.address)
       let denom = await tweether.tweetherDenominator()
       denom.toString().should.equal(denominator.toString())
     })
@@ -42,7 +44,7 @@ contract('Tweether', (accounts) => {
       let oracleCostResult = await tweether.oracleCost()
       let { 0: price, 1: decimals } = oracleCostResult
 
-      let actualOracleCost = await oracle.getPrice()
+      let actualOracleCost = await oracleclient.getPrice()
       let { 0: expectedPrice, 1: expectedDecimals } = actualOracleCost
 
       price.toString().should.equal(expectedPrice.toString())
@@ -62,6 +64,23 @@ contract('Tweether', (accounts) => {
       let linkBalanceResult = await link.balanceOf(deployer)
       let expectedMintAmount = 100 * WAD
       linkBalanceResult.toString().should.equal(expectedMintAmount.toString())
+    })
+  })
+  describe('sending requests', async () => {
+    context('sends a mock Tweet Request', () => {
+      it('triggers a log event in the new Oracle contract', async () => {
+        let status = "Let's try a status"
+        const successfulTweet = await oracleclient.sendTweet(status)
+        let oracleclientLog = successfulTweet.logs[0]
+      })
+    })
+    context('Response from the oracle', () => {
+      it('Reverts if the chainlink node isn\'t the one to respond', async () => {
+        await oracleclient.returnTweetId(ethers.utils.formatBytes32String("f"), 7).should.be.rejectedWith(EVM_ORACLE_REVERT)
+      })
+      // it('Returns a successful tweetId', async () => {
+      //   await oracleclient.returnTweetId(ethers.utils.formatBytes32String("f"), 7, { from: pendingRequests[_requestId] })
+      // })
     })
   })
 

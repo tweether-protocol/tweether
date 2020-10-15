@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
 import "@openzeppelin/contracts/utils/EnumerableSet.sol";
-import "./oracle/IOracleClient.sol";
+import "./oracleClient/IOracleClient.sol";
 import "./NFTwe.sol";
 import "./utils/WadMath.sol";
 import "./utils/TweetContent.sol";
@@ -27,7 +27,7 @@ contract Tweether is ERC20, ERC721Holder{
     /**
      * @dev Oracle contract to tweet from
      */
-    IOracleClient public oracle;
+    IOracleClient public oracleclient;
 
     /**
      * @dev NFTwe
@@ -62,13 +62,13 @@ contract Tweether is ERC20, ERC721Holder{
 
     /**
      * Construct using a pre-constructed IOracleClient
-     * @param oracleAddress address referencing pre-deployed IOracleClient
+     * @param oracleclientAddress address referencing pre-deployed IOracleClient
      * @param denominator WAD format representing the Tweether Denominator, 
      * used in a range of protocol calculations
      */
-    constructor(address oracleAddress, address nftweAddress, uint denominator) public ERC20("Tweether", "TWE") {
-        oracle = IOracleClient(oracleAddress);
-        link = IERC20(oracle.paymentTokenAddress());
+    constructor(address oracleclientAddress, address nftweAddress, uint denominator) public ERC20("Tweether", "TWE") {
+        oracleclient = IOracleClient(oracleclientAddress);
+        link = IERC20(oracleclient.paymentTokenAddress());
         nftwe = NFTwe(nftweAddress);
         tweetherDenominator = denominator;
     }
@@ -143,7 +143,7 @@ contract Tweether is ERC20, ERC721Holder{
 
         // If votes tip over edge, transfer NFTwe
         if (totalVotes >= votesRequired()) {
-            oracle.sendTweet(proposals[proposalId].content);
+            oracleclient.sendTweet(proposals[proposalId].content);
             nftwe.newTweet(
                 proposals[proposalId].proposer,
                 proposals[proposalId].content,
@@ -227,7 +227,7 @@ contract Tweether is ERC20, ERC721Holder{
      * @return (uint price, uint decimals)
      */
     function oracleCost() public view returns (uint, uint) {
-        return oracle.getPrice();
+        return oracleclient.getPrice();
     }
 
     /**

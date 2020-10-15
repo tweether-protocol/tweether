@@ -1,3 +1,4 @@
+const HDWalletProvider = require('@truffle/hdwallet-provider')
 /**
  * Use this file to configure your truffle project. It's seeded with some
  * common settings for different networks and features like migrations,
@@ -42,12 +43,19 @@ module.exports = {
     // tab if you use this network and you must also set the `host`, `port` and `network_id`
     // options below to some value.
     //
- 
+
     development: {
       host: "127.0.0.1",     // Localhost (default: none)
       port: 7545,            // Standard Ethereum port (default: none)
       network_id: "*",       // Any network (default: none)
       gas: 0x6691b7
+    },
+    kovan: {
+      provider: () => {
+        return new HDWalletProvider(process.env.MNEMONIC, process.env.RPC_URL)
+      },
+      network_id: '42',
+      skipDryRun: true,
     },
     // Another network with more advanced options...
     // advanced: {
@@ -91,8 +99,8 @@ module.exports = {
           enabled: true,
           runs: 200
         },
-      //  evmVersion: "byzantium"
+        //  evmVersion: "byzantium"
       }
     }
   }
-};
+}
