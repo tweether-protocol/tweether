@@ -118,11 +118,10 @@ contract Tweether is ERC20{
      * @param numberOfVotes number of votes to unvote
      */
     function unvote(uint proposalId, uint numberOfVotes) external {
-        // Does the sender have enough votes locked to unvote?
-        require(balanceOf(msg.sender) >= numberOfVotes
-            && lockedVotes[msg.sender] >= numberOfVotes, "Not enough locked votes");
         // Does the tweet exist?
         require(proposalId < proposals.length, "Proposal doesn't exist");
+        // Has the proposal been accepted already?
+        require(proposals[proposalId].accepted != true, "Proposal accepted already");
 
         // decrease number of votes of the tweet
         uint totalVotes = proposals[proposalId].votes.sub(numberOfVotes);
@@ -146,15 +145,15 @@ contract Tweether is ERC20{
      * @param numberOfVotes votes to cast on proposal
      */
     function vote(uint proposalId, uint numberOfVotes) external {
+        // Does the tweet exist?
+        require(proposalId < proposals.length, "Proposal doesn't exist");
+        // Has the proposal been accepted already?
+        require(proposals[proposalId].accepted != true, "Proposal accepted already");
+        // Is the proposal valid?
+        require(proposals[proposalId].expiry > block.timestamp, "Proposal expired");
         // Does the sender have enough TWE for votes
         // Does the sender have enough TWE not locked in votes already?
         require(balanceOf(msg.sender).sub(lockedVotes[msg.sender]) >= numberOfVotes, "Not enough unlocked TWE");
-        // Does the tweet exist?
-        require(proposalId < proposals.length, "Proposal doesn't exist");
-        // Is the proposal valid?
-        require(proposals[proposalId].expiry > block.timestamp, "Proposal expired");
-        // Has the proposal been accepted already?
-        require(proposals[proposalId].accepted != true, "Proposal accepted already");
         // Add to list of voters
         proposals[proposalId].voters.add(msg.sender);
         // Add to voteAmounts
