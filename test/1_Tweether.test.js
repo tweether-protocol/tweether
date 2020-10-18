@@ -325,4 +325,29 @@ contract('Tweether', (accounts) => {
       voteAmounts.toString().should.equal('0')
     })
   })
+
+  describe('transferring TWE', async () => {
+    let proposalReturn, proposalId, linkSuppliedAmount, votes, oneDayTweet
+    beforeEach(async () => {
+      oneDayTweet = 'This is a 1 day tweet.'
+      linkSuppliedAmount = 10 * WAD
+      await link.approve(tweether.address, linkSuppliedAmount.toString(), { from: deployer })
+      await tweether.mint(linkSuppliedAmount.toString(), { from: deployer })
+    })
+
+    it('allows transfer when no TWE locked', async () => {
+      await tweether.transfer(user1, WAD.toString(), {from:deployer})
+      let user1Balance = await tweether.balanceOf(user1)
+      user1Balance.toString().should.equal(WAD.toString())
+    })
+
+    it('does not allow transfer of locked TWE', async () => {
+      proposalReturn = await tweether.proposeTweet(1, oneDayTweet)
+      proposalId = proposalReturn.logs[1].args.proposalId
+      await tweether.vote(proposalId.toString(), WAD.toString())
+
+      await tweether.transfer(user1, WAD.toString(), {from:deployer})
+        .should.be.rejectedWith(EVM_REVERT)
+    })
+  })
 })

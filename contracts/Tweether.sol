@@ -72,6 +72,15 @@ contract Tweether is ERC20{
     }
 
     /**
+     * @dev Require that a holder can't send their TWE until they
+     * have unlocked their TWE votes from proposals.
+     * @param from address
+     */
+    function _beforeTokenTransfer(address from, address, uint256) internal override {
+        require(lockedVotes[from] == 0, "Unlock TWE votes before transfer");
+    }
+
+    /**
      * @dev Mint TWE by supplying LINK. LINK.approve must first be called by msg.sender
      * @param linkAmount the amount of LINK to supply
      * @return amount of TWE minted
