@@ -251,9 +251,8 @@ contract('Tweether', (accounts) => {
       proposalDetails[3].toString().should.equal(WAD.toString())
       let lockedVotes = await tweether.lockedVotes(deployer)
       lockedVotes.toString().should.equal(WAD.toString())
-      // TODO change this to voteAmounts check
-      // let voteLocations = await tweether.voteLocations(deployer, proposalId.toString())
-      // voteLocations.should.equal(true)
+      let voteAmounts = await tweether.voteAmounts(deployer, proposalId)
+      voteAmounts.toString().should.equal(WAD.toString())
     })
 
     it('1 owner votes enough to accept', async () => {
@@ -284,12 +283,6 @@ contract('Tweether', (accounts) => {
       eventLog = response.logs[1]
       eventLog.event.toString().should.equal('TweetAccepted')
     })
-
-    // TODO: check all state changes:
-    //  - Tweet.votes
-    //  - Tweet.voters
-    //  - voteAmounts
-    //  - lockedVotes
   })
 
   describe('unvoting on proposals', async () => {
@@ -331,11 +324,5 @@ contract('Tweether', (accounts) => {
       voteAmounts = await tweether.voteAmounts(deployer, proposalId, { from: deployer })
       voteAmounts.toString().should.equal('0')
     })
-
-    // TODO: check all state changes:
-    //  - Tweet.votes
-    //  - Tweet.voters
-    //  - voteAmounts
-    //  - lockedVotes
   })
 })
