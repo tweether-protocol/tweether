@@ -305,20 +305,31 @@ contract('Tweether', (accounts) => {
       await tweether.vote(proposalId.toString(), votes.toString())
     })
 
-    it('unvotes', async () => {
+    it('unvotes some', async () => {
       let votesLocked = await tweether.lockedVotes(deployer)
       votesLocked.toString().should.equal(votes.toString())
-      // TODO: change this to voteAmounts check
-      // let voteLocations = await tweether.voteLocations(deployer, proposalId.toString())
-      // voteLocations.should.equal(true)
+      let voteAmounts = await tweether.voteAmounts(deployer, proposalId, { from: deployer })
+      voteAmounts.toString().should.equal(votes.toString())
 
       let unvotes = votes / 2
       await tweether.unvote(proposalId.toString(), unvotes.toString(), { from: deployer })
       votesLocked = await tweether.lockedVotes(deployer)
       votesLocked.toString().should.equal(unvotes.toString())
-      // TODO: change this to voteAmounts check
-      // voteLocations = await tweether.voteLocations(deployer, proposalId.toString())
-      // voteLocations.should.equal(true)
+      voteAmounts = await tweether.voteAmounts(deployer, proposalId, { from: deployer })
+      voteAmounts.toString().should.equal(unvotes.toString())
+    })
+
+    it('unvotes all', async () => {
+      let votesLocked = await tweether.lockedVotes(deployer)
+      votesLocked.toString().should.equal(votes.toString())
+      let voteAmounts = await tweether.voteAmounts(deployer, proposalId, { from: deployer })
+      voteAmounts.toString().should.equal(votes.toString())
+
+      await tweether.unvote(proposalId.toString(), votes.toString(), { from: deployer })
+      votesLocked = await tweether.lockedVotes(deployer)
+      votesLocked.toString().should.equal('0')
+      voteAmounts = await tweether.voteAmounts(deployer, proposalId, { from: deployer })
+      voteAmounts.toString().should.equal('0')
     })
 
     // TODO: check all state changes:
