@@ -197,7 +197,7 @@ contract Tweether is ERC20{
             voteAmounts[voter][proposalId] = 0;
         }
         emit TweetAccepted(proposalId, msg.sender);
-        oracle.sendTweet(proposals[proposalId].content);
+        oracleclient.sendTweet(proposals[proposalId].content);
         nftwe.newTweet(
             proposals[proposalId].proposer,
             proposals[proposalId].content,
