@@ -3,7 +3,6 @@ pragma solidity ^0.6.10;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
 import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 import "./oracleClient/IOracleClient.sol";
 import "./NFTwe.sol";
@@ -14,7 +13,7 @@ import "./utils/TweetContent.sol";
  * @dev Tweether Protocol gov contract
  * @author Alex Roan (@alexroan)
  */
-contract Tweether is ERC20, ERC721Holder{
+contract Tweether is ERC20{
     using WadMath for uint;
     using TweetContent for string;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -45,24 +44,24 @@ contract Tweether is ERC20, ERC721Holder{
         string content;
         uint votes;
         bool accepted;
-
         EnumerableSet.AddressSet voters;
-        mapping(address => uint) voteAmounts;
     }
 
     Tweet[] private proposals;
 
-    // Total number of votes locked by each address
+    // Votes per proposal per address
+    mapping(address => mapping(uint => uint)) public voteAmounts;
     mapping(address => uint) public lockedVotes;
-    // Vote locations for each voter
-    mapping(address => mapping(uint => bool)) public voteLocations;
 
     event TweetProposed(uint proposalId, address proposer, uint expiryDate);
+    event VoteCast(uint proposalId, address voter, uint amount);
+    event VoteUncast(uint proposalId, address voter, uint amount);
     event TweetAccepted(uint proposalId, address finalVoter);
 
     /**
      * Construct using a pre-constructed IOracleClient
      * @param oracleclientAddress address referencing pre-deployed IOracleClient
+     * @param nftweAddress address of the NFTwe contractto mint to voters
      * @param denominator WAD format representing the Tweether Denominator, 
      * used in a range of protocol calculations
      */
@@ -71,6 +70,15 @@ contract Tweether is ERC20, ERC721Holder{
         link = IERC20(oracleclient.paymentTokenAddress());
         nftwe = NFTwe(nftweAddress);
         tweetherDenominator = denominator;
+    }
+
+    /**
+     * @dev Require that a holder can't send their TWE until they
+     * have unlocked their TWE votes from proposals.
+     * @param from address
+     */
+    function _beforeTokenTransfer(address from, address, uint256) internal override {
+        require(lockedVotes[from] == 0, "Unlock TWE votes before transfer");
     }
 
     /**
@@ -115,44 +123,90 @@ contract Tweether is ERC20, ERC721Holder{
     }
 
     /**
+     * @dev Unvote from a proposal
+     * @param proposalId ID of tweet proposal
+     * @param numberOfVotes number of votes to unvote
+     */
+    function unvote(uint proposalId, uint numberOfVotes) external {
+        // Does the tweet exist?
+        require(proposalId < proposals.length, "Proposal doesn't exist");
+        // Has the proposal been accepted already?
+        require(proposals[proposalId].accepted != true, "Proposal accepted already");
+
+        // decrease number of votes of the tweet
+        uint totalVotes = proposals[proposalId].votes.sub(numberOfVotes);
+        proposals[proposalId].votes = totalVotes;
+        // decrease vote amounts for user on proposal
+        voteAmounts[msg.sender][proposalId] = voteAmounts[msg.sender][proposalId].sub(numberOfVotes);
+        lockedVotes[msg.sender] = lockedVotes[msg.sender].sub(numberOfVotes);
+        // if the remaining votes on this proposal, by this address is now 0
+        // remove them from the list of voters
+        if (totalVotes == 0) {
+            // remove from list of voters
+            proposals[proposalId].voters.remove(msg.sender);
+        }
+        emit VoteUncast(proposalId, msg.sender, numberOfVotes);
+        checkVoteCount(proposalId);
+    }
+
+    /**
      * @dev Vote on a proposal
      * @param proposalId ID of proposal
      * @param numberOfVotes votes to cast on proposal
      */
     function vote(uint proposalId, uint numberOfVotes) external {
+        // Does the tweet exist?
+        require(proposalId < proposals.length, "Proposal doesn't exist");
+        // Has the proposal been accepted already?
+        require(proposals[proposalId].accepted != true, "Proposal accepted already");
+        // Is the proposal valid?
+        require(proposals[proposalId].expiry > block.timestamp, "Proposal expired");
         // Does the sender have enough TWE for votes
         // Does the sender have enough TWE not locked in votes already?
         require(balanceOf(msg.sender).sub(lockedVotes[msg.sender]) >= numberOfVotes, "Not enough unlocked TWE");
-        // Does the tweet exist?
-        require(proposalId < proposals.length, "Proposal doesn't exist");
-        // Is the proposal valid?
-        require(proposals[proposalId].expiry > block.timestamp, "Proposal expired");
-        // Has the proposal been accepted already?
-        require(proposals[proposalId].accepted != true, "Proposal accepted already");
-        // Increase amount of votes locked for address
-        lockedVotes[msg.sender] = lockedVotes[msg.sender].add(numberOfVotes);
-        // Add vote location
-        voteLocations[msg.sender][proposalId] = true;
         // Add to list of voters
         proposals[proposalId].voters.add(msg.sender);
         // Add to voteAmounts
-        proposals[proposalId].voteAmounts[msg.sender] = proposals[proposalId].voteAmounts[msg.sender].add(numberOfVotes);
+        voteAmounts[msg.sender][proposalId] = voteAmounts[msg.sender][proposalId].add(numberOfVotes);
+        lockedVotes[msg.sender] = lockedVotes[msg.sender].add(numberOfVotes);
         // Vote on tweet
         uint totalVotes = proposals[proposalId].votes.add(numberOfVotes);
         proposals[proposalId].votes = totalVotes;
+        emit VoteCast(proposalId, msg.sender, numberOfVotes);
+        checkVoteCount(proposalId);
+    }
 
-        // If votes tip over edge, transfer NFTwe
+    /**
+     * @dev Check the vote count of a proposal and tweet if
+     * it exceeds the votesRequired
+     * @param proposalId Tweet proposal ID
+     */
+    function checkVoteCount(uint proposalId) public {
+        uint totalVotes = proposals[proposalId].votes;
+        // If votes tip over edge, accept tweet
         if (totalVotes >= votesRequired()) {
-            oracleclient.sendTweet(proposals[proposalId].content);
-            nftwe.newTweet(
-                proposals[proposalId].proposer,
-                proposals[proposalId].content,
-                block.timestamp,
-                msg.sender
-            );
-            emit TweetAccepted(proposalId, msg.sender);
-            // TODO: Unlock votes!
+            _acceptTweet(proposalId);
         }
+    }
+
+    function _acceptTweet(uint proposalId) internal {
+        proposals[proposalId].accepted = true;
+        // Unlock votes, but maintain history in proposal
+        for (uint index = 0; index < proposals[proposalId].voters.length(); index++) {
+            address voter = proposals[proposalId].voters.at(index);
+            lockedVotes[voter] = lockedVotes[voter].sub(voteAmounts[voter][proposalId]);
+            voteAmounts[voter][proposalId] = 0;
+        }
+        emit TweetAccepted(proposalId, msg.sender);
+        (uint price,) = oracleCost();
+        link.approve(address(oracleclient), price);
+        oracleclient.sendTweet(proposals[proposalId].content);
+        nftwe.newTweet(
+            proposals[proposalId].proposer,
+            proposals[proposalId].content,
+            block.timestamp,
+            msg.sender
+        );
     }
 
     /**

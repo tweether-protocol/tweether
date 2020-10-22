@@ -71,7 +71,6 @@ contract('Tweether', (accounts) => {
     })
   })
 
-
   describe('minting and burning', async () => {
     it('mints TWE for LINK 1:1 before any proposals or tweets', async () => {
       let linkSuppliedAmount = 4 * WAD
@@ -257,8 +256,8 @@ contract('Tweether', (accounts) => {
       proposalDetails[3].toString().should.equal(WAD.toString())
       let lockedVotes = await tweether.lockedVotes(deployer)
       lockedVotes.toString().should.equal(WAD.toString())
-      let voteLocations = await tweether.voteLocations(deployer, proposalId.toString())
-      voteLocations.should.equal(true)
+      let voteAmounts = await tweether.voteAmounts(deployer, proposalId)
+      voteAmounts.toString().should.equal(WAD.toString())
     })
 
     it('1 owner votes enough to accept', async () => {
@@ -271,7 +270,7 @@ contract('Tweether', (accounts) => {
       parseInt(votes).should.be.gt(parseInt(votesRequired))
 
       let response = await tweether.vote(proposalId.toString(), votes.toString())
-      let eventLog = response.logs[0]
+      let eventLog = response.logs[1]
       eventLog.event.toString().should.equal('TweetAccepted')
     })
 
@@ -283,11 +282,76 @@ contract('Tweether', (accounts) => {
       let votes = (await tweether.votesRequired()) / 2
 
       let response = await tweether.vote(proposalId.toString(), votes.toString())
-      response.logs.length.should.equal(0)
+      response.logs.length.should.equal(1)
 
       response = await tweether.vote(proposalId.toString(), votes.toString())
-      eventLog = response.logs[0]
+      eventLog = response.logs[1]
       eventLog.event.toString().should.equal('TweetAccepted')
+    })
+  })
+
+  describe('unvoting on proposals', async () => {
+    let proposalReturn, proposalId, linkSuppliedAmount, votes
+    beforeEach(async () => {
+      let oneDayTweet = 'This is a 1 day tweet.'
+      linkSuppliedAmount = 10 * WAD
+      await link.approve(tweether.address, linkSuppliedAmount.toString(), { from: deployer })
+      await tweether.mint(linkSuppliedAmount.toString(), { from: deployer })
+      proposalReturn = await tweether.proposeTweet(1, oneDayTweet)
+      proposalId = proposalReturn.logs[1].args.proposalId
+      votes = WAD
+      await tweether.vote(proposalId.toString(), votes.toString())
+    })
+
+    it('unvotes some', async () => {
+      let votesLocked = await tweether.lockedVotes(deployer)
+      votesLocked.toString().should.equal(votes.toString())
+      let voteAmounts = await tweether.voteAmounts(deployer, proposalId, { from: deployer })
+      voteAmounts.toString().should.equal(votes.toString())
+
+      let unvotes = votes / 2
+      await tweether.unvote(proposalId.toString(), unvotes.toString(), { from: deployer })
+      votesLocked = await tweether.lockedVotes(deployer)
+      votesLocked.toString().should.equal(unvotes.toString())
+      voteAmounts = await tweether.voteAmounts(deployer, proposalId, { from: deployer })
+      voteAmounts.toString().should.equal(unvotes.toString())
+    })
+
+    it('unvotes all', async () => {
+      let votesLocked = await tweether.lockedVotes(deployer)
+      votesLocked.toString().should.equal(votes.toString())
+      let voteAmounts = await tweether.voteAmounts(deployer, proposalId, { from: deployer })
+      voteAmounts.toString().should.equal(votes.toString())
+
+      await tweether.unvote(proposalId.toString(), votes.toString(), { from: deployer })
+      votesLocked = await tweether.lockedVotes(deployer)
+      votesLocked.toString().should.equal('0')
+      voteAmounts = await tweether.voteAmounts(deployer, proposalId, { from: deployer })
+      voteAmounts.toString().should.equal('0')
+    })
+  })
+
+  describe('transferring TWE', async () => {
+    let proposalReturn, proposalId, linkSuppliedAmount, votes, oneDayTweet
+    beforeEach(async () => {
+      oneDayTweet = 'This is a 1 day tweet.'
+      linkSuppliedAmount = 10 * WAD
+      await link.approve(tweether.address, linkSuppliedAmount.toString(), { from: deployer })
+      await tweether.mint(linkSuppliedAmount.toString(), { from: deployer })
+    })
+
+    it('allows transfer when no TWE locked', async () => {
+      await tweether.transfer(user1, WAD.toString(), { from: deployer })
+      let user1Balance = await tweether.balanceOf(user1)
+      user1Balance.toString().should.equal(WAD.toString())
+    })
+
+    it('does not allow transfer of locked TWE', async () => {
+      proposalReturn = await tweether.proposeTweet(1, oneDayTweet)
+      proposalId = proposalReturn.logs[1].args.proposalId
+      await tweether.vote(proposalId.toString(), WAD.toString())
+
+      await tweether.transfer(user1, WAD.toString(), { from: deployer }).should.be.rejectedWith(EVM_REVERT)
     })
   })
 })

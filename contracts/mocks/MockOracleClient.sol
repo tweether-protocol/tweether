@@ -46,7 +46,7 @@ contract MockOracleClient is IOracleClient, ChainlinkClient, Ownable {
     }
 
     modifier onlyGovernance() {
-        require(msg.sender == governance, "Source must be the governance contract");
+        require(msg.sender == governance, "Governance only");
         _;
     }
 }
