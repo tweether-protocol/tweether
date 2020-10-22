@@ -4,7 +4,7 @@ pragma solidity ^0.6.10;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/EnumerableSet.sol";
-import "./oracle/IOracle.sol";
+import "./oracleClient/IOracleClient.sol";
 import "./NFTwe.sol";
 import "./utils/WadMath.sol";
 import "./utils/TweetContent.sol";
@@ -26,7 +26,7 @@ contract Tweether is ERC20{
     /**
      * @dev Oracle contract to tweet from
      */
-    IOracle public oracle;
+    IOracleClient public oracleclient;
 
     /**
      * @dev NFTwe
@@ -59,14 +59,14 @@ contract Tweether is ERC20{
     event TweetAccepted(uint proposalId, address finalVoter);
 
     /**
-     * Construct using a pre-constructed IOracle
-     * @param oracleAddress address referencing pre-deployed IOracle
+     * Construct using a pre-constructed IOracleClient
+     * @param oracleclientAddress address referencing pre-deployed IOracleClient
      * @param denominator WAD format representing the Tweether Denominator, 
      * used in a range of protocol calculations
      */
-    constructor(address oracleAddress, address nftweAddress, uint denominator) public ERC20("Tweether", "TWE") {
-        oracle = IOracle(oracleAddress);
-        link = IERC20(oracle.paymentTokenAddress());
+    constructor(address oracleclientAddress, address nftweAddress, uint denominator) public ERC20("Tweether", "TWE") {
+        oracleclient = IOracleClient(oracleclientAddress);
+        link = IERC20(oracleclient.paymentTokenAddress());
         nftwe = NFTwe(nftweAddress);
         tweetherDenominator = denominator;
     }
@@ -278,7 +278,7 @@ contract Tweether is ERC20{
      * @return (uint price, uint decimals)
      */
     function oracleCost() public view returns (uint, uint) {
-        return oracle.price();
+        return oracleclient.getPrice();
     }
 
     /**
