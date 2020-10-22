@@ -3,6 +3,7 @@ pragma solidity ^0.6.10;
 
 import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract OracleClient is ChainlinkClient, Ownable {
     // Price, Decimals
@@ -36,11 +37,12 @@ contract OracleClient is ChainlinkClient, Ownable {
         return (PRICE, DECIMALS);
     }
 
-    function paymentTokenAddress() external view returns (address){
+    function paymentTokenAddress() public view returns (address){
         return chainlinkTokenAddress();
     }
 
     function sendTweet(string memory status) external onlyGovernance {
+        require(IERC20(paymentTokenAddress()).transferFrom(msg.sender, address(this), PRICE), "Must pay oracle");
         Chainlink.Request memory request = buildChainlinkRequest(JOBID, address(this), this.returnTweetId.selector);
         request.add("status", status);
         sendChainlinkRequestTo(ORACLE_ADDRESS, request, PRICE);
@@ -52,7 +54,7 @@ contract OracleClient is ChainlinkClient, Ownable {
     }
 
     modifier onlyGovernance() {
-        require(msg.sender == governance, "Source must be the governance contract");
+        require(msg.sender == governance, "Governance only");
         _;
     }
 }
