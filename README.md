@@ -47,3 +47,11 @@ And you should get a successful tweet send from the contract.
 [View on market.link](https://market.link/jobs/56b8f668-a3bb-4344-b3b0-d3bfd548ce2e)
 
 [Current Twitter account associated](https://twitter.com/TweethTweet)
+
+# Contracts
+
+[Tweether](https://kovan.etherscan.io/address/0x71463cfa3295ecab30efba5493e7e78dd89e84f8)
+
+[NFTwe](https://kovan.etherscan.io/address/0x54c9f9846a8eb548eff28077d9c11b15d638d939)
+
+[OracleClient](https://kovan.etherscan.io/address/0xa3259c915aaaae50a1efae015b99d45e359acb5c)

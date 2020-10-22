@@ -23,7 +23,7 @@ contract OracleClient is ChainlinkClient, Ownable {
         setPublicChainlinkToken();
         ORACLE_ADDRESS = 0xAA1DC356dc4B18f30C347798FD5379F3D77ABC5b;
         JOBID = "09f3d678301a408cb6a8ab983932636d";
-        PRICE = 1 * 10 ** DECIMALS; // 1 LINK
+        PRICE = 1 * 10 ** DECIMALS; //0 1 LINK
         governanceSet = false;
     }
 

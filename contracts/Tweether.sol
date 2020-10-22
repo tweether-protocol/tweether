@@ -61,6 +61,7 @@ contract Tweether is ERC20{
     /**
      * Construct using a pre-constructed IOracleClient
      * @param oracleclientAddress address referencing pre-deployed IOracleClient
+     * @param nftweAddress address of the NFTwe contractto mint to voters
      * @param denominator WAD format representing the Tweether Denominator, 
      * used in a range of protocol calculations
      */
