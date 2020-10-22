@@ -71,7 +71,6 @@ contract('Tweether', (accounts) => {
     })
   })
 
-
   describe('minting and burning', async () => {
     it('mints TWE for LINK 1:1 before any proposals or tweets', async () => {
       let linkSuppliedAmount = 4 * WAD
@@ -342,7 +341,7 @@ contract('Tweether', (accounts) => {
     })
 
     it('allows transfer when no TWE locked', async () => {
-      await tweether.transfer(user1, WAD.toString(), {from:deployer})
+      await tweether.transfer(user1, WAD.toString(), { from: deployer })
       let user1Balance = await tweether.balanceOf(user1)
       user1Balance.toString().should.equal(WAD.toString())
     })
@@ -352,8 +351,7 @@ contract('Tweether', (accounts) => {
       proposalId = proposalReturn.logs[1].args.proposalId
       await tweether.vote(proposalId.toString(), WAD.toString())
 
-      await tweether.transfer(user1, WAD.toString(), {from:deployer})
-        .should.be.rejectedWith(EVM_REVERT)
+      await tweether.transfer(user1, WAD.toString(), { from: deployer }).should.be.rejectedWith(EVM_REVERT)
     })
   })
 })
